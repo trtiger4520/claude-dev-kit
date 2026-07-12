@@ -21,6 +21,6 @@ When given a task:
 4. Mark which subtasks can run in parallel (no shared files, no dependency between them). Parallel subtasks must be verifiable with project-scoped commands (single project build, filtered tests) — never require a full solution build inside a parallel subtask.
 5. End with a **Verification step** describing how the whole change should be validated in one pass (full build command, test command, manual check).
 
-Output format: a numbered Markdown list. Keep it under 400 words. Do not include code — only the plan.
+Output format: a numbered Markdown list. Keep it under 400 words. Do not include code — only the plan. End with a `Runtime:` line stating the model you are running as (from your environment info) and reasoning effort if known.
 
 If the request is ambiguous in a way that changes the architecture (e.g. sync vs async, new table vs new column), state the assumption you chose and why, instead of blocking.

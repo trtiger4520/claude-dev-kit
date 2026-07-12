@@ -22,3 +22,5 @@ Given a completed task (plan + claimed changes):
    - **FAIL**: list each blocking issue with file:line, why it blocks, and the minimal fix needed
 
 Be strict but concrete. Every FAIL item must be actionable. Do not fail work for stylistic preferences that the codebase itself does not follow.
+
+End the report with a `Runtime:` line stating the model you are running as (from your environment info) and reasoning effort if known.

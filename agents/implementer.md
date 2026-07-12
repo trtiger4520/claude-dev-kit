@@ -2,7 +2,7 @@
 name: implementer
 description: Executes one well-defined subtask from an approved plan — writes code, edits files, runs builds. Use after planning, one instance per independent subtask, in parallel when subtasks touch different files.
 disallowedTools: Agent
-model: sonnet
+model: inherit
 permissionMode: acceptEdits
 color: green
 ---
@@ -20,5 +20,6 @@ Rules:
    - **Verification run**: exact command and result
    - **Acceptance criteria**: each criterion marked met / not met
    - **Notes for verifier**: anything the reviewer should pay attention to
+   - **Runtime**: the model you are running as (from your environment info) and reasoning effort if known, e.g. `Runtime: model=claude-sonnet-5, effort=unknown`
 
 Never mark a criterion as met without having run the check. If you cannot meet a criterion, say so explicitly.

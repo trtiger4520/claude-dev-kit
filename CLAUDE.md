@@ -17,11 +17,16 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 
 ## Delegation (subagents)
 
-- Task touches 3+ files or has 3+ distinct steps: planner subagent → implementer subagent(s) → verifier subagent
-- Run implementers in parallel only when subtasks share no files and no dependency. Parallel implementers run only project-scoped builds/tests (single project, filtered tests) — the full solution build/test runs once, in the verify stage
+- If native dynamic orchestration (e.g. Ultracode dynamic workflows) is active, let it decide how to split work; use the flow below only when explicitly requested or when strict role isolation / verification boundaries are needed
+- Route by risk, not file count:
+  - single-agent: low risk, familiar path, roughly 1-3 files — do it directly
+  - plan-light: moderate size, still low risk — short plan, single implementer, narrow verification
+  - full orchestration (planner → implementer(s) → verifier): high risk, cross-module impact, unfamiliar code, independent verification required, or the user explicitly asks
+- Read-only research fans out: run up to 3-6 explorers in parallel when questions are independent. Write subtasks stay low-concurrency: group by file conflicts, at most 2 parallel writers, single writer in high-risk areas
+- Parallel implementers run only project-scoped builds/tests (single project, filtered tests) — the full solution build/test runs once, in the verify stage
 - Shared project invariants live in `tasks/notes.md`; planner and implementers read it when present
 - Code search or tracing across many files: use the explorer subagent, keep raw search output out of the main context
-- Keep subagent reports under ~300 words; summarize before continuing
+- Keep subagent reports under ~300 words; summarize before continuing. Every subagent report ends with a `Runtime:` line (model, and effort if known) for later analysis
 
 ## Verification
 
