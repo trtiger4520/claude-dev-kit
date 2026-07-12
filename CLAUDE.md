@@ -22,6 +22,7 @@ Bias toward caution over speed. For trivial tasks, use judgment.
   - single-agent: low risk, familiar path, roughly 1-3 files — do it directly
   - plan-light: moderate size, still low risk — short plan, single implementer, narrow verification
   - full orchestration (planner → implementer(s) → verifier): high risk, cross-module impact, unfamiliar code, independent verification required, or the user explicitly asks
+- Hard trigger (no discretion): tasks touching auth/authorization/roles/permissions/Identity, payments/billing, data migrations/schema, secrets/crypto, multi-tenant boundaries, or infra/deploy pipelines are high risk BY DEFINITION — invoke the risky-change skill before implementing and use full orchestration. Keyword match decides, not your judgment of the change's size
 - Read-only research fans out: run up to 3-6 explorers in parallel when questions are independent. Write subtasks stay low-concurrency: group by file conflicts, at most 2 parallel writers, single writer in high-risk areas
 - Parallel implementers run only project-scoped builds/tests (single project, filtered tests) — the full solution build/test runs once, in the verify stage
 - Shared project invariants live in `tasks/notes.md`; planner and implementers read it when present

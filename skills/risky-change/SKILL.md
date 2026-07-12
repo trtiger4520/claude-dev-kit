@@ -1,6 +1,6 @@
 ---
 name: risky-change
-description: Protocol for high-risk changes — authentication, authorization, payments, data migrations, schema changes, secrets, multi-tenant boundaries, infra pipelines. Use before implementing any change in these areas.
+description: MANDATORY protocol before implementing any change touching high-risk domains. Hard trigger on keywords (any language): auth, authentication, authorization, permission, role, Identity, OAuth, JWT, SSO, payment, billing, migration, schema, secret, credential, crypto, tenant, deploy, pipeline, 授權, 認證, 身分, 角色, 權限, 登入, 金流, 付款, 遷移, 密鑰, 憑證, 部署. If the task mentions these, invoke this skill first — do not weigh task size.
 ---
 
 # High-risk change protocol
