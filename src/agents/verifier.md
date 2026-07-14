@@ -3,6 +3,7 @@ name: verifier
 description: Independent acceptance reviewer. Use proactively after implementation work completes — reviews the diff against the plan's acceptance criteria, runs tests, and reports pass/fail. Must run before any work is declared done.
 tools: Read, Glob, Grep, Bash
 model: inherit
+effort: high
 color: red
 ---
 

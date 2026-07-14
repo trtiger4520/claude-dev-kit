@@ -45,7 +45,7 @@ function Resolve-Model([string]$agentName, [string]$currentModel) {
     if (-not $interactive) { return $currentModel }
     Write-Host ""
     Write-Host "選擇 agent「$agentName」使用的 model（目前：$currentModel）"
-    Write-Host "  1) inherit（跟隨主對話模型，預設）"
+    Write-Host "  1) inherit（跟隨主對話模型）"
     Write-Host "  2) sonnet"
     Write-Host "  3) opus"
     Write-Host "  4) haiku"
@@ -69,7 +69,7 @@ function Resolve-Effort([string]$agentName, [string]$currentEffort) {
     $currentDisplay = if ($currentEffort) { $currentEffort } else { 'inherit' }
     Write-Host ""
     Write-Host "選擇 agent「$agentName」使用的 effort（目前：$currentDisplay）"
-    Write-Host "  1) inherit（跟隨主對話，預設，不寫入 effort 欄位）"
+    Write-Host "  1) inherit（跟隨主對話，不寫入 effort 欄位）"
     Write-Host "  2) low"
     Write-Host "  3) medium"
     Write-Host "  4) high"
@@ -87,9 +87,11 @@ function Install-AgentFile([string]$file, [string]$destDir) {
     $action = if (Test-Path $target) { '覆蓋' } else { '新增' }
     $agentName = [IO.Path]::GetFileNameWithoutExtension($file)
 
+    # 既有安裝以目的地設定為準；全新安裝以 src frontmatter 為預設
     $currentModel = Get-CurrentField $target 'model'
+    if (-not $currentModel) { $currentModel = Get-CurrentField $file 'model' }
     if (-not $currentModel) { $currentModel = 'inherit' }
-    $currentEffort = Get-CurrentField $target 'effort'
+    $currentEffort = if (Test-Path $target) { Get-CurrentField $target 'effort' } else { Get-CurrentField $file 'effort' }
 
     $chosenModel  = Resolve-Model  $agentName $currentModel
     $chosenEffort = Resolve-Effort $agentName $currentEffort

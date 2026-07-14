@@ -42,7 +42,7 @@ resolve_model() {
     if [ "$INTERACTIVE" -ne 1 ]; then echo "$current"; return; fi
     echo "" >&2
     echo "選擇 agent「$name」使用的 model（目前：$current）" >&2
-    echo "  1) inherit（跟隨主對話模型，預設）" >&2
+    echo "  1) inherit（跟隨主對話模型）" >&2
     echo "  2) sonnet" >&2
     echo "  3) opus" >&2
     echo "  4) haiku" >&2
@@ -73,7 +73,7 @@ resolve_effort() {
     [ -z "$current_display" ] && current_display='inherit'
     echo "" >&2
     echo "選擇 agent「$name」使用的 effort（目前：$current_display）" >&2
-    echo "  1) inherit（跟隨主對話，預設，不寫入 effort 欄位）" >&2
+    echo "  1) inherit（跟隨主對話，不寫入 effort 欄位）" >&2
     echo "  2) low" >&2
     echo "  3) medium" >&2
     echo "  4) high" >&2
@@ -99,9 +99,15 @@ install_agent_file() {
     if [ -e "$target" ]; then a='覆蓋'; else a='新增'; fi
     name=$(basename "$file" .md)
 
+    # 既有安裝以目的地設定為準；全新安裝以 src frontmatter 為預設
     current_model=$(get_current_field "$target" model)
+    [ -z "$current_model" ] && current_model=$(get_current_field "$file" model)
     [ -z "$current_model" ] && current_model='inherit'
-    current_effort=$(get_current_field "$target" effort)
+    if [ -e "$target" ]; then
+        current_effort=$(get_current_field "$target" effort)
+    else
+        current_effort=$(get_current_field "$file" effort)
+    fi
 
     chosen_model=$(resolve_model "$name" "$current_model")
     chosen_effort=$(resolve_effort "$name" "$current_effort")

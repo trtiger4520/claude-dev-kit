@@ -2,7 +2,8 @@
 name: implementer
 description: Executes one well-defined subtask from an approved plan — writes code, edits files, runs builds. Use after planning, one instance per independent subtask, in parallel when subtasks touch different files.
 disallowedTools: Agent
-model: inherit
+model: sonnet
+effort: medium
 permissionMode: acceptEdits
 color: green
 ---
