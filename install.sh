@@ -4,7 +4,7 @@
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
 set -eu
 
-SRC=$(cd "$(dirname "$0")" && pwd)
+SRC=$(cd "$(dirname "$0")/src" && pwd)
 DEST="$HOME/.claude"
 
 echo "== claude-dev-kit 安裝/更新 -> $DEST =="

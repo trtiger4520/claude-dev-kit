@@ -3,7 +3,7 @@
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
 $ErrorActionPreference = 'Stop'
 
-$src  = $PSScriptRoot
+$src  = Join-Path $PSScriptRoot 'src'
 $dest = Join-Path $env:USERPROFILE '.claude'
 
 Write-Host "== claude-dev-kit 安裝/更新 -> $dest =="
