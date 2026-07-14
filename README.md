@@ -34,6 +34,11 @@ sh install.sh
 兩支腳本做的事相同：
 
 - 複製 agents/、commands/、skills/、hooks/ 到 `~/.claude/` 對應目錄
+- 安裝 agents 時，逐一詢問每個 agent 要用的 model 與 effort（僅互動環境會問；直接 Enter 保留目前設定）：
+  - model：`inherit`（預設，跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID
+  - effort：`inherit`（預設，不寫入 effort 欄位）/`low`/`medium`/`high`/`xhigh`/`max`
+  - 也可用環境變數在安裝前直接指定、跳過該欄位的提示：`CDK_MODEL_EXPLORER`、`CDK_MODEL_IMPLEMENTER`、`CDK_MODEL_PLANNER`、`CDK_MODEL_VERIFIER`（值同上）；`CDK_EFFORT_EXPLORER`、`CDK_EFFORT_IMPLEMENTER`、`CDK_EFFORT_PLANNER`、`CDK_EFFORT_VERIFIER`（值為 `inherit`/空字串 或 low/medium/high/xhigh/max）
+  - 非互動環境（stdin 非 tty，例如 CI、curl pipe）且未設定對應環境變數時，直接沿用該 agent 目前已安裝的設定，不會被重置回預設值
 - CLAUDE.md「整份取代」`~/.claude/CLAUDE.md`（不是附加）
 - 自動把 UserPromptSubmit hook 合併進 `~/.claude/settings.json`——只新增或更新本 kit 自己的項目，不動其他既有設定；寫入前先備份為 settings.json.bak
 

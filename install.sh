@@ -23,7 +23,102 @@ install_file() {
     echo "[$a] $t"
 }
 
-for f in "$SRC"/agents/*.md;   do install_file "$f" "$DEST/agents"; done
+# ---- agents：安裝時可為每個 agent 選擇 model 與 effort ----
+INTERACTIVE=0
+[ -t 0 ] && INTERACTIVE=1
+
+get_current_field() {
+    t="$1"; field="$2"
+    if [ -e "$t" ]; then
+        grep "^$field:" "$t" 2>/dev/null | head -n1 | sed "s/^$field:[[:space:]]*//"
+    fi
+}
+
+resolve_model() {
+    name="$1"; current="$2"
+    envname="CDK_MODEL_$(echo "$name" | tr '[:lower:]' '[:upper:]')"
+    eval "envval=\${$envname:-}"
+    if [ -n "$envval" ]; then echo "$envval"; return; fi
+    if [ "$INTERACTIVE" -ne 1 ]; then echo "$current"; return; fi
+    echo "" >&2
+    echo "選擇 agent「$name」使用的 model（目前：$current）" >&2
+    echo "  1) inherit（跟隨主對話模型，預設）" >&2
+    echo "  2) sonnet" >&2
+    echo "  3) opus" >&2
+    echo "  4) haiku" >&2
+    echo "  5) fable" >&2
+    printf "輸入數字或直接輸入完整 model ID，Enter 保留目前設定：" >&2
+    read -r choice
+    case "$choice" in
+        '') echo "$current" ;;
+        1) echo "inherit" ;;
+        2) echo "sonnet" ;;
+        3) echo "opus" ;;
+        4) echo "haiku" ;;
+        5) echo "fable" ;;
+        *) echo "$choice" ;;
+    esac
+}
+
+resolve_effort() {
+    name="$1"; current="$2"
+    envname="CDK_EFFORT_$(echo "$name" | tr '[:lower:]' '[:upper:]')"
+    eval "envval=\${$envname:-}"
+    if [ -n "$envval" ]; then
+        if [ "$envval" = "inherit" ]; then echo ""; else echo "$envval"; fi
+        return
+    fi
+    if [ "$INTERACTIVE" -ne 1 ]; then echo "$current"; return; fi
+    current_display="$current"
+    [ -z "$current_display" ] && current_display='inherit'
+    echo "" >&2
+    echo "選擇 agent「$name」使用的 effort（目前：$current_display）" >&2
+    echo "  1) inherit（跟隨主對話，預設，不寫入 effort 欄位）" >&2
+    echo "  2) low" >&2
+    echo "  3) medium" >&2
+    echo "  4) high" >&2
+    echo "  5) xhigh" >&2
+    echo "  6) max" >&2
+    printf "輸入數字，Enter 保留目前設定：" >&2
+    read -r choice
+    case "$choice" in
+        '') echo "$current" ;;
+        1) echo "" ;;
+        2) echo "low" ;;
+        3) echo "medium" ;;
+        4) echo "high" ;;
+        5) echo "xhigh" ;;
+        6) echo "max" ;;
+        *) echo "無效輸入，保留目前設定：$current_display" >&2; echo "$current" ;;
+    esac
+}
+
+install_agent_file() {
+    file="$1"; destDir="$2"
+    target="$destDir/$(basename "$file")"
+    if [ -e "$target" ]; then a='覆蓋'; else a='新增'; fi
+    name=$(basename "$file" .md)
+
+    current_model=$(get_current_field "$target" model)
+    [ -z "$current_model" ] && current_model='inherit'
+    current_effort=$(get_current_field "$target" effort)
+
+    chosen_model=$(resolve_model "$name" "$current_model")
+    chosen_effort=$(resolve_effort "$name" "$current_effort")
+
+    awk -v model="$chosen_model" -v effort="$chosen_effort" '
+        /^model:/  { print "model: " model; if (effort != "") print "effort: " effort; next }
+        /^effort:/ { next }
+        { print }
+    ' "$file" > "$target"
+
+    echo "[$a] $target"
+    effort_display="$chosen_effort"
+    [ -z "$effort_display" ] && effort_display='inherit'
+    echo "       model=$chosen_model, effort=$effort_display"
+}
+
+for f in "$SRC"/agents/*.md;   do install_agent_file "$f" "$DEST/agents"; done
 for f in "$SRC"/commands/*.md; do install_file "$f" "$DEST/commands"; done
 
 for d in "$SRC"/skills/*/; do
