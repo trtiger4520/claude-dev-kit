@@ -44,6 +44,7 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 
 ## Conventions
 
-- 註解、提交訊息、PR 訊息結尾不使用句號 `。`
-- 提交訊息不填寫 Co-Authored-By
+- All replies will be conducted in Traditional Chinese (zh-TW) as the primary language
+- Do not end comments, commit messages, or pull request messages with the Chinese full stop `。`
+- Do not add `Co-Authored-By` trailers to commits
 - Multi-line commit messages: use multiple `-m` flags or `git commit -F -`; never embed literal `\n` in a single quoted string
