@@ -34,6 +34,21 @@ sh install.sh
 兩支腳本做的事相同：
 
 - 複製 agents/、commands/、skills/、hooks/ 到 `~/.claude/` 對應目錄
+- 安裝 agents 時，逐一詢問每個 agent 要用的 model 與 effort（僅互動環境會問；直接 Enter 保留目前設定）：
+  - model：`inherit`（跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID
+  - effort：`inherit`（不寫入 effort 欄位）/`low`/`medium`/`high`/`xhigh`/`max`
+  - 各 agent 的建議預設值（全新安裝時直接 Enter 即採用；更新時保留既有設定，不會被預設值覆蓋）：
+
+    | agent | model | effort |
+    | --- | --- | --- |
+    | planner | inherit | inherit |
+    | verifier | inherit | high |
+    | implementer | sonnet | medium |
+    | explorer | sonnet | low |
+
+    分配邏輯：品質關鍵角色（planner 規劃、verifier 驗收把關）跟隨主對話模型，verifier 加高 effort；implementer 執行已定義明確的子任務，用 sonnet+medium 平衡成本；explorer 需要正確追蹤呼叫鏈（探索錯誤會污染下游），用 sonnet+low 兼顧品質與 fan-out 成本（註：haiku 不支援 effort 參數）。預設值定義在 `src/agents/*.md` 的 frontmatter，改那裡即可調整預設
+  - 也可用環境變數在安裝前直接指定、跳過該欄位的提示：`CDK_MODEL_EXPLORER`、`CDK_MODEL_IMPLEMENTER`、`CDK_MODEL_PLANNER`、`CDK_MODEL_VERIFIER`（值同上）；`CDK_EFFORT_EXPLORER`、`CDK_EFFORT_IMPLEMENTER`、`CDK_EFFORT_PLANNER`、`CDK_EFFORT_VERIFIER`（值為 `inherit`/空字串 或 low/medium/high/xhigh/max）
+  - 非互動環境（stdin 非 tty，例如 CI、curl pipe）且未設定對應環境變數時，直接沿用該 agent 目前已安裝的設定，不會被重置回預設值
 - CLAUDE.md「整份取代」`~/.claude/CLAUDE.md`（不是附加）
 - 自動把 UserPromptSubmit hook 合併進 `~/.claude/settings.json`——只新增或更新本 kit 自己的項目，不動其他既有設定；寫入前先備份為 settings.json.bak
 

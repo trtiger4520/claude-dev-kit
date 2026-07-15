@@ -3,7 +3,7 @@
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
 $ErrorActionPreference = 'Stop'
 
-$src  = $PSScriptRoot
+$src  = Join-Path $PSScriptRoot 'src'
 $dest = Join-Path $env:USERPROFILE '.claude'
 
 Write-Host "== claude-dev-kit 安裝/更新 -> $dest =="
@@ -23,7 +23,92 @@ function Install-File([string]$file, [string]$destDir) {
     Write-Host "[$action] $target"
 }
 
-foreach ($f in Get-ChildItem (Join-Path $src 'agents')   -Filter *.md) { Install-File $f.FullName (Join-Path $dest 'agents') }
+# ---- agents：安裝時可為每個 agent 選擇 model 與 effort ----
+$modelAliases  = @{ '1' = 'inherit'; '2' = 'sonnet'; '3' = 'opus'; '4' = 'haiku'; '5' = 'fable' }
+$effortAliases = @{ '1' = '';        '2' = 'low';    '3' = 'medium'; '4' = 'high'; '5' = 'xhigh'; '6' = 'max' }
+$interactive   = -not [Console]::IsInputRedirected
+
+function Get-CurrentField([string]$targetPath, [string]$fieldName) {
+    if (Test-Path $targetPath) {
+        $line = Get-Content $targetPath | Where-Object { $_ -match "^${fieldName}:\s*(.+)$" } | Select-Object -First 1
+        if ($line -and ($line -match "^${fieldName}:\s*(.+)$")) { return $Matches[1].Trim() }
+    }
+    return ''
+}
+
+function Resolve-Model([string]$agentName, [string]$currentModel) {
+    $envVar = "CDK_MODEL_$($agentName.ToUpper())"
+    if (Test-Path "Env:$envVar") {
+        $envVal = (Get-Item "Env:$envVar").Value
+        if (-not [string]::IsNullOrWhiteSpace($envVal)) { return $envVal.Trim() }
+    }
+    if (-not $interactive) { return $currentModel }
+    Write-Host ""
+    Write-Host "選擇 agent「$agentName」使用的 model（目前：$currentModel）"
+    Write-Host "  1) inherit（跟隨主對話模型）"
+    Write-Host "  2) sonnet"
+    Write-Host "  3) opus"
+    Write-Host "  4) haiku"
+    Write-Host "  5) fable"
+    $choice = Read-Host "輸入數字或直接輸入完整 model ID，Enter 保留目前設定"
+    if ([string]::IsNullOrWhiteSpace($choice)) { return $currentModel }
+    if ($modelAliases.ContainsKey($choice)) { return $modelAliases[$choice] }
+    return $choice.Trim()
+}
+
+function Resolve-Effort([string]$agentName, [string]$currentEffort) {
+    $envVar = "CDK_EFFORT_$($agentName.ToUpper())"
+    if (Test-Path "Env:$envVar") {
+        $envVal = (Get-Item "Env:$envVar").Value
+        if (-not [string]::IsNullOrWhiteSpace($envVal)) {
+            if ($envVal.Trim() -eq 'inherit') { return '' }
+            return $envVal.Trim()
+        }
+    }
+    if (-not $interactive) { return $currentEffort }
+    $currentDisplay = if ($currentEffort) { $currentEffort } else { 'inherit' }
+    Write-Host ""
+    Write-Host "選擇 agent「$agentName」使用的 effort（目前：$currentDisplay）"
+    Write-Host "  1) inherit（跟隨主對話，不寫入 effort 欄位）"
+    Write-Host "  2) low"
+    Write-Host "  3) medium"
+    Write-Host "  4) high"
+    Write-Host "  5) xhigh"
+    Write-Host "  6) max"
+    $choice = Read-Host "輸入數字，Enter 保留目前設定"
+    if ([string]::IsNullOrWhiteSpace($choice)) { return $currentEffort }
+    if ($effortAliases.ContainsKey($choice)) { return $effortAliases[$choice] }
+    Write-Warning "無效輸入，保留目前設定：$currentDisplay"
+    return $currentEffort
+}
+
+function Install-AgentFile([string]$file, [string]$destDir) {
+    $target = Join-Path $destDir (Split-Path -Leaf $file)
+    $action = if (Test-Path $target) { '覆蓋' } else { '新增' }
+    $agentName = [IO.Path]::GetFileNameWithoutExtension($file)
+
+    # 既有安裝以目的地設定為準；全新安裝以 src frontmatter 為預設
+    $currentModel = Get-CurrentField $target 'model'
+    if (-not $currentModel) { $currentModel = Get-CurrentField $file 'model' }
+    if (-not $currentModel) { $currentModel = 'inherit' }
+    $currentEffort = if (Test-Path $target) { Get-CurrentField $target 'effort' } else { Get-CurrentField $file 'effort' }
+
+    $chosenModel  = Resolve-Model  $agentName $currentModel
+    $chosenEffort = Resolve-Effort $agentName $currentEffort
+
+    $content = Get-Content $file -Raw -Encoding UTF8
+    $content = $content -replace '(?m)^effort:\s*.*\r?\n', ''
+    $modelLine = "model: $chosenModel"
+    if ($chosenEffort) { $modelLine = "$modelLine`neffort: $chosenEffort" }
+    $content = $content -replace '(?m)^model:\s*.+$', $modelLine
+
+    [System.IO.File]::WriteAllText($target, $content, (New-Object System.Text.UTF8Encoding $false))
+    Write-Host "[$action] $target"
+    $effortDisplay = if ($chosenEffort) { $chosenEffort } else { 'inherit' }
+    Write-Host "       model=$chosenModel, effort=$effortDisplay"
+}
+
+foreach ($f in Get-ChildItem (Join-Path $src 'agents')   -Filter *.md) { Install-AgentFile $f.FullName (Join-Path $dest 'agents') }
 foreach ($f in Get-ChildItem (Join-Path $src 'commands') -Filter *.md) { Install-File $f.FullName (Join-Path $dest 'commands') }
 foreach ($f in Get-ChildItem (Join-Path $src 'workflows') -Filter *.js) { Install-File $f.FullName (Join-Path $dest 'workflows') }
 

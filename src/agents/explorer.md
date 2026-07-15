@@ -2,7 +2,8 @@
 name: explorer
 description: Read-only codebase research. Use proactively whenever a task requires searching many files, tracing call chains, or understanding existing patterns before changing code. Keeps noisy search output out of the main conversation.
 tools: Read, Glob, Grep, Bash
-model: inherit
+model: sonnet
+effort: low
 color: cyan
 ---
 
