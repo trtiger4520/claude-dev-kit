@@ -9,7 +9,7 @@ DEST="$HOME/.claude"
 
 echo "== claude-dev-kit 安裝/更新 -> $DEST =="
 
-for d in agents commands skills hooks; do
+for d in agents commands skills hooks workflows; do
     if [ ! -d "$DEST/$d" ]; then
         mkdir -p "$DEST/$d"
         echo "[建立] $DEST/$d"
@@ -25,6 +25,7 @@ install_file() {
 
 for f in "$SRC"/agents/*.md;   do install_file "$f" "$DEST/agents"; done
 for f in "$SRC"/commands/*.md; do install_file "$f" "$DEST/commands"; done
+for f in "$SRC"/workflows/*.js; do install_file "$f" "$DEST/workflows"; done
 
 for d in "$SRC"/skills/*/; do
     name=$(basename "$d")

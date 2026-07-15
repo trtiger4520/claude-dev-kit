@@ -8,7 +8,7 @@ $dest = Join-Path $env:USERPROFILE '.claude'
 
 Write-Host "== claude-dev-kit 安裝/更新 -> $dest =="
 
-foreach ($dir in 'agents', 'commands', 'skills', 'hooks') {
+foreach ($dir in 'agents', 'commands', 'skills', 'hooks', 'workflows') {
     $d = Join-Path $dest $dir
     if (-not (Test-Path $d)) {
         New-Item -ItemType Directory -Force $d | Out-Null
@@ -25,6 +25,7 @@ function Install-File([string]$file, [string]$destDir) {
 
 foreach ($f in Get-ChildItem (Join-Path $src 'agents')   -Filter *.md) { Install-File $f.FullName (Join-Path $dest 'agents') }
 foreach ($f in Get-ChildItem (Join-Path $src 'commands') -Filter *.md) { Install-File $f.FullName (Join-Path $dest 'commands') }
+foreach ($f in Get-ChildItem (Join-Path $src 'workflows') -Filter *.js) { Install-File $f.FullName (Join-Path $dest 'workflows') }
 
 foreach ($d in Get-ChildItem (Join-Path $src 'skills') -Directory) {
     $target = Join-Path $dest "skills\$($d.Name)"
