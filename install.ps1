@@ -1,26 +1,42 @@
 ﻿# install.ps1 — 安裝/更新 claude-dev-kit 到 %USERPROFILE%\.claude（Windows）
 # 重複執行即為更新；settings.json 只合併本 kit 的 hook 註冊，不動其他既有設定
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
+# -DryRun：只印出將會做的動作，不寫入任何檔案
+param(
+    [switch]$DryRun
+)
 $ErrorActionPreference = 'Stop'
 
 $src  = Join-Path $PSScriptRoot 'src'
 $dest = Join-Path $env:USERPROFILE '.claude'
 
-Write-Host "== claude-dev-kit 安裝/更新 -> $dest =="
+if ($DryRun) {
+    Write-Host "== claude-dev-kit 安裝/更新 -> $dest（-DryRun，僅預覽不寫入）=="
+} else {
+    Write-Host "== claude-dev-kit 安裝/更新 -> $dest =="
+}
 
 foreach ($dir in 'agents', 'commands', 'skills', 'hooks') {
     $d = Join-Path $dest $dir
     if (-not (Test-Path $d)) {
-        New-Item -ItemType Directory -Force $d | Out-Null
-        Write-Host "[建立] $d"
+        if ($DryRun) {
+            Write-Host "[建立] $d（dry-run，未建立）"
+        } else {
+            New-Item -ItemType Directory -Force $d | Out-Null
+            Write-Host "[建立] $d"
+        }
     }
 }
 
 function Install-File([string]$file, [string]$destDir) {
     $target = Join-Path $destDir (Split-Path -Leaf $file)
     $action = if (Test-Path $target) { '覆蓋' } else { '新增' }
-    Copy-Item $file $target -Force
-    Write-Host "[$action] $target"
+    if ($DryRun) {
+        Write-Host "[$action] $target（dry-run，未寫入）"
+    } else {
+        Copy-Item $file $target -Force
+        Write-Host "[$action] $target"
+    }
 }
 
 # ---- agents：安裝時可為每個 agent 選擇 model 與 effort ----
@@ -102,8 +118,12 @@ function Install-AgentFile([string]$file, [string]$destDir) {
     if ($chosenEffort) { $modelLine = "$modelLine`neffort: $chosenEffort" }
     $content = $content -replace '(?m)^model:\s*.+$', $modelLine
 
-    [System.IO.File]::WriteAllText($target, $content, (New-Object System.Text.UTF8Encoding $false))
-    Write-Host "[$action] $target"
+    if ($DryRun) {
+        Write-Host "[$action] $target（dry-run，未寫入）"
+    } else {
+        [System.IO.File]::WriteAllText($target, $content, (New-Object System.Text.UTF8Encoding $false))
+        Write-Host "[$action] $target"
+    }
     $effortDisplay = if ($chosenEffort) { $chosenEffort } else { 'inherit' }
     Write-Host "       model=$chosenModel, effort=$effortDisplay"
 }
@@ -114,8 +134,12 @@ foreach ($f in Get-ChildItem (Join-Path $src 'commands') -Filter *.md) { Install
 foreach ($d in Get-ChildItem (Join-Path $src 'skills') -Directory) {
     $target = Join-Path $dest "skills\$($d.Name)"
     $action = if (Test-Path $target) { '覆蓋' } else { '新增' }
-    Copy-Item $d.FullName (Join-Path $dest 'skills') -Recurse -Force
-    Write-Host "[$action] $target"
+    if ($DryRun) {
+        Write-Host "[$action] $target（dry-run，未寫入）"
+    } else {
+        Copy-Item $d.FullName (Join-Path $dest 'skills') -Recurse -Force
+        Write-Host "[$action] $target"
+    }
 }
 
 # CLAUDE.md 整份取代，不是附加；取代前備份一層（.bak 每次覆蓋），內容相同則不處理
@@ -125,12 +149,19 @@ if (Test-Path $claudeTarget) {
     if ((Get-FileHash $claudeSrc).Hash -eq (Get-FileHash $claudeTarget).Hash) {
         Write-Host "[未動] $claudeTarget — 內容相同，未覆蓋、未備份"
     }
+    elseif ($DryRun) {
+        Write-Host "[備份] $claudeTarget -> $claudeTarget.bak（dry-run，未寫入）"
+        Write-Host "[取代] $claudeTarget（dry-run，未寫入）"
+    }
     else {
         Copy-Item $claudeTarget "$claudeTarget.bak" -Force
         Write-Host "[備份] $claudeTarget -> $claudeTarget.bak（只保留一層）"
         Copy-Item $claudeSrc $claudeTarget -Force
         Write-Host "[取代] $claudeTarget（整份覆蓋，非附加）"
     }
+}
+elseif ($DryRun) {
+    Write-Host "[新增] $claudeTarget（dry-run，未寫入）"
 }
 else {
     Copy-Item $claudeSrc $claudeTarget -Force
@@ -192,12 +223,15 @@ if ($found -and -not $oldCommand) {
     Write-Host "[未動] $settingsPath — hook 已註冊且內容相同，未寫入、未備份"
 }
 else {
+    $suffix = if ($DryRun) { "（dry-run，未寫入）" } else { "" }
     if ($settingsExisted) {
-        Copy-Item $settingsPath "$settingsPath.bak" -Force
-        Write-Host "[備份] $settingsPath -> $settingsPath.bak"
+        if (-not $DryRun) {
+            Copy-Item $settingsPath "$settingsPath.bak" -Force
+        }
+        Write-Host "[備份] $settingsPath -> $settingsPath.bak$suffix"
     }
     else {
-        Write-Host "[新增] $settingsPath"
+        Write-Host "[新增] $settingsPath$suffix"
     }
     if ($found) {
         Write-Host "[更新] $settingsPath hooks.UserPromptSubmit 既有項目 command："
@@ -212,13 +246,16 @@ else {
         Write-Host "[合併] $settingsPath 新增 hooks.UserPromptSubmit 項目："
         Write-Host "       command = $hookCommand"
     }
-    $json = $settings | ConvertTo-Json -Depth 32
-    [System.IO.File]::WriteAllText($settingsPath, $json, (New-Object System.Text.UTF8Encoding $false))
+    if (-not $DryRun) {
+        $json = $settings | ConvertTo-Json -Depth 32
+        [System.IO.File]::WriteAllText($settingsPath, $json, (New-Object System.Text.UTF8Encoding $false))
+    }
 }
 
 if ($otherKeys.Count)       { Write-Host "[未動] settings.json 其他設定鍵：$($otherKeys -join '、')" }
 if ($otherHookEvents.Count) { Write-Host "[未動] settings.json hooks 其他事件：$($otherHookEvents -join '、')" }
 
 Write-Host "== 完成 =="
+if ($DryRun) { Write-Host "（-DryRun 模式，未寫入任何檔案）" }
 Write-Host "未列出的既有檔案與設定一律未變動"
 Write-Host "skills 目錄若是首次建立，需重啟 Claude Code"

@@ -2,25 +2,45 @@
 # install.sh — 安裝/更新 claude-dev-kit 到 ~/.claude（macOS / Linux）
 # 重複執行即為更新；settings.json 只合併本 kit 的 hook 註冊，不動其他既有設定
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
+# --dry-run：只印出將會做的動作，不寫入任何檔案
 set -eu
+
+DRY_RUN=0
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+    esac
+done
 
 SRC=$(cd "$(dirname "$0")/src" && pwd)
 DEST="$HOME/.claude"
 
-echo "== claude-dev-kit 安裝/更新 -> $DEST =="
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "== claude-dev-kit 安裝/更新 -> $DEST（--dry-run，僅預覽不寫入）=="
+else
+    echo "== claude-dev-kit 安裝/更新 -> $DEST =="
+fi
 
 for d in agents commands skills hooks; do
     if [ ! -d "$DEST/$d" ]; then
-        mkdir -p "$DEST/$d"
-        echo "[建立] $DEST/$d"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            echo "[建立] $DEST/$d（dry-run，未建立）"
+        else
+            mkdir -p "$DEST/$d"
+            echo "[建立] $DEST/$d"
+        fi
     fi
 done
 
 install_file() {
     t="$2/$(basename "$1")"
     if [ -e "$t" ]; then a='覆蓋'; else a='新增'; fi
-    cp "$1" "$t"
-    echo "[$a] $t"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "[$a] $t（dry-run，未寫入）"
+    else
+        cp "$1" "$t"
+        echo "[$a] $t"
+    fi
 }
 
 # ---- agents：安裝時可為每個 agent 選擇 model 與 effort ----
@@ -112,13 +132,16 @@ install_agent_file() {
     chosen_model=$(resolve_model "$name" "$current_model")
     chosen_effort=$(resolve_effort "$name" "$current_effort")
 
-    awk -v model="$chosen_model" -v effort="$chosen_effort" '
-        /^model:/  { print "model: " model; if (effort != "") print "effort: " effort; next }
-        /^effort:/ { next }
-        { print }
-    ' "$file" > "$target"
-
-    echo "[$a] $target"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "[$a] $target（dry-run，未寫入）"
+    else
+        awk -v model="$chosen_model" -v effort="$chosen_effort" '
+            /^model:/  { print "model: " model; if (effort != "") print "effort: " effort; next }
+            /^effort:/ { next }
+            { print }
+        ' "$file" > "$target"
+        echo "[$a] $target"
+    fi
     effort_display="$chosen_effort"
     [ -z "$effort_display" ] && effort_display='inherit'
     echo "       model=$chosen_model, effort=$effort_display"
@@ -131,38 +154,49 @@ for d in "$SRC"/skills/*/; do
     name=$(basename "$d")
     t="$DEST/skills/$name"
     if [ -e "$t" ]; then a='覆蓋'; else a='新增'; fi
-    cp -R "${d%/}" "$DEST/skills/"
-    echo "[$a] $t"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "[$a] $t（dry-run，未寫入）"
+    else
+        cp -R "${d%/}" "$DEST/skills/"
+        echo "[$a] $t"
+    fi
 done
 
 # CLAUDE.md 整份取代，不是附加；取代前備份一層（.bak 每次覆蓋），內容相同則不處理
 if [ -e "$DEST/CLAUDE.md" ]; then
     if cmp -s "$SRC/CLAUDE.md" "$DEST/CLAUDE.md"; then
         echo "[未動] $DEST/CLAUDE.md — 內容相同，未覆蓋、未備份"
+    elif [ "$DRY_RUN" -eq 1 ]; then
+        echo "[備份] $DEST/CLAUDE.md -> $DEST/CLAUDE.md.bak（dry-run，未寫入）"
+        echo "[取代] $DEST/CLAUDE.md（dry-run，未寫入）"
     else
         cp "$DEST/CLAUDE.md" "$DEST/CLAUDE.md.bak"
         echo "[備份] $DEST/CLAUDE.md -> $DEST/CLAUDE.md.bak（只保留一層）"
         cp "$SRC/CLAUDE.md" "$DEST/CLAUDE.md"
         echo "[取代] $DEST/CLAUDE.md（整份覆蓋，非附加）"
     fi
+elif [ "$DRY_RUN" -eq 1 ]; then
+    echo "[新增] $DEST/CLAUDE.md（dry-run，未寫入）"
 else
     cp "$SRC/CLAUDE.md" "$DEST/CLAUDE.md"
     echo "[新增] $DEST/CLAUDE.md"
 fi
 
 install_file "$SRC/hooks/risky-change-trigger.sh" "$DEST/hooks"
-chmod +x "$DEST/hooks/risky-change-trigger.sh"
+[ "$DRY_RUN" -eq 1 ] || chmod +x "$DEST/hooks/risky-change-trigger.sh"
 
 # ---- settings.json：合併 UserPromptSubmit hook 註冊 ----
 SETTINGS_PATH="$DEST/settings.json"
 HOOK_CMD="\"$DEST/hooks/risky-change-trigger.sh\""
 
 if command -v python3 >/dev/null 2>&1; then
-    SETTINGS_PATH="$SETTINGS_PATH" HOOK_CMD="$HOOK_CMD" PYTHONIOENCODING=utf-8 python3 <<'PYEOF'
+    SETTINGS_PATH="$SETTINGS_PATH" HOOK_CMD="$HOOK_CMD" DRY_RUN="$DRY_RUN" PYTHONIOENCODING=utf-8 python3 <<'PYEOF'
 import json, os, shutil, sys
 
 path = os.environ["SETTINGS_PATH"]
 cmd = os.environ["HOOK_CMD"]
+dry_run = os.environ.get("DRY_RUN") == "1"
+suffix = "（dry-run，未寫入）" if dry_run else ""
 
 existed = os.path.exists(path)
 settings = {}
@@ -198,10 +232,11 @@ if found and old is None:
     print(f"[未動] {path} — hook 已註冊且內容相同，未寫入、未備份")
 else:
     if existed:
-        shutil.copyfile(path, path + ".bak")
-        print(f"[備份] {path} -> {path}.bak")
+        if not dry_run:
+            shutil.copyfile(path, path + ".bak")
+        print(f"[備份] {path} -> {path}.bak{suffix}")
     else:
-        print(f"[新增] {path}")
+        print(f"[新增] {path}{suffix}")
     if found:
         print(f"[更新] {path} hooks.UserPromptSubmit 既有項目 command：")
         print(f"       舊：{old}")
@@ -210,9 +245,10 @@ else:
         ups.append({"hooks": [{"type": "command", "command": cmd, "timeout": 15}]})
         print(f"[合併] {path} 新增 hooks.UserPromptSubmit 項目：")
         print(f"       command = {cmd}")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(settings, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    if not dry_run:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(settings, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 
 if other_keys:
     print("[未動] settings.json 其他設定鍵：" + "、".join(other_keys))
@@ -224,5 +260,6 @@ else
 fi
 
 echo "== 完成 =="
+[ "$DRY_RUN" -eq 1 ] && echo "（--dry-run 模式，未寫入任何檔案）"
 echo "未列出的既有檔案與設定一律未變動"
 echo "skills 目錄若是首次建立，需重啟 Claude Code"

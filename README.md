@@ -31,6 +31,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 sh install.sh
 ```
 
+加上 `-DryRun`（PowerShell）或 `--dry-run`（sh）只會印出將會做的動作，不寫入任何檔案，方便測試
+
 兩支腳本做的事相同：
 
 - 複製 agents/、commands/、skills/、hooks/ 到 `~/.claude/` 對應目錄
