@@ -3,17 +3,38 @@
 # 重複執行即為更新；settings.json 只合併本 kit 的 hook 註冊，不動其他既有設定
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
 # --dry-run：只印出將會做的動作，不寫入任何檔案
+# --destination：明確指定目的地；未指定時依序使用 CLAUDE_CONFIG_DIR、~/.claude
 set -eu
 
 DRY_RUN=0
-for arg in "$@"; do
-    case "$arg" in
-        --dry-run) DRY_RUN=1 ;;
+DESTINATION=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --dry-run) DRY_RUN=1; shift ;;
+        --destination)
+            [ "$#" -ge 2 ] || { echo "缺少 --destination 的路徑" >&2; exit 1; }
+            DESTINATION=$2
+            shift 2
+            ;;
+        *) echo "未知參數：$1" >&2; exit 1 ;;
     esac
 done
 
 SRC=$(cd "$(dirname "$0")/src" && pwd)
-DEST="$HOME/.claude"
+if [ -n "$DESTINATION" ]; then
+    DEST=$DESTINATION
+elif [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+    DEST=$CLAUDE_CONFIG_DIR
+elif [ -n "${HOME:-}" ]; then
+    DEST="$HOME/.claude"
+else
+    echo "未提供 --destination，且 CLAUDE_CONFIG_DIR 與 HOME 都無法使用" >&2
+    exit 1
+fi
+case "$DEST" in
+    /*) ;;
+    *) DEST="$(pwd)/$DEST" ;;
+esac
 
 if [ "$DRY_RUN" -eq 1 ]; then
     echo "== claude-dev-kit 安裝/更新 -> $DEST（--dry-run，僅預覽不寫入）=="

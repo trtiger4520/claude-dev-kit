@@ -1,14 +1,15 @@
 ---
-description: Heavyweight full-orchestration workflow (plan → parallel subtasks → independent verification). High token cost — use only when explicitly invoked, for high-risk or cross-module work
+description: Heavyweight full-orchestration workflow for explicit requests or actual high-risk changes. High token cost.
 ---
 
 Run the following workflow for this task: $ARGUMENTS
 
-1. **Plan**: Use the planner subagent to decompose the task into subtasks with acceptance criteria and a dependency order. Show me the plan before continuing. Stop to ask only for ambiguity that changes the architecture — one question with a recommended default; for everything else state the assumption and proceed.
-2. **Research (if needed)**: For subtasks that require understanding unfamiliar code, use the explorer subagent to research first. Research is read-only — fan out up to 3-6 explorers in parallel when the questions are independent. Record any invariants the explorer flags into `tasks/notes.md`.
-3. **Implement**: For each subtask, use the implementer subagent. Group write subtasks by file conflicts: launch at most 2 implementers in parallel, only when they share no files and no dependency; use a single implementer in high-risk areas. Run dependent subtasks in sequence, passing forward only the relevant results. Parallel implementers run only project-scoped builds/tests — never the full solution build.
-4. **Verify**: After all subtasks complete, use the verifier subagent to independently check the full change set against the plan's acceptance criteria. This is where the full solution build and full relevant test suite run, exactly once.
-5. **Iterate**: If the verifier reports FAIL, send only the failing items back to the implementer subagent, then re-verify. Repeat at most twice; if still failing, stop and report the remaining issues to me.
-6. **Summarize**: Report changed files, verification evidence, and any follow-ups. Then append one line to `tasks/metrics.log` (create it if missing): `<ISO date> | cmd=orchestrate | explorers=<n> | implementers=<n> | models=<from each subagent's Runtime line> | verifier=<PASS|FAIL> | repair_iterations=<n>`
-
-Do not skip step 4 even if the implementation looks trivially correct.
+1. **Plan**: Use one planner subagent to inspect the real project and group the request into the smallest dependency-ordered cohesive delivery units with exact files and observable acceptance criteria. Keep product code, tests, and required documentation together. Do not dispatch writers yet.
+2. **Approve**: Present the plan, assumptions, risk, writer count, and verification commands. Stop until I explicitly approve it. Architecture-changing ambiguity gets one question with a recommended default; otherwise state assumptions and proceed.
+3. **Research only unanswered questions**: After approval, use at most one explorer only when a code-path question remains unanswered. Pass its concise findings through the parent context; do not create repository note files.
+4. **Implement**: Assign each approved cohesive unit to an implementer. Use one writer by default, two only for independent units with disjoint files, and one for high-risk work. Serialize dependencies and file conflicts. Parallel implementers run only project-scoped checks.
+5. **Capture the boundary**: Invoke the source-boundary skill to create a tracked and non-ignored untracked file snapshot in an operating-system temporary file outside the repository. Review any allowed generated-file patterns before verification.
+6. **Verify**: Send the approved plan and complete change set to one verifier. The verifier must inspect the actual diff and run the approved full relevant build and test commands itself without editing source files.
+7. **Check the boundary**: Invoke the source-boundary skill again. Any changed source outside reviewed allowed patterns invalidates the verifier result. Do not revert or delete unexpected changes; report them.
+8. **Iterate**: On FAIL, send only blocking findings to the original implementer context when available, then re-use the same verifier context. Run the narrowest failed checks after each repair. Stop after two failed repair cycles; after blockers clear, run the complete relevant suite once.
+9. **Summarize**: Report changed files, verification evidence, acceptance criteria, agent roles and counts, repair cycles, and follow-ups. Remove only the temporary boundary snapshot created by this workflow.

@@ -17,21 +17,34 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 
 ## Delegation (subagents)
 
-- If native dynamic orchestration (e.g. Ultracode dynamic workflows) is active, let it decide how to split work; use the flow below only when explicitly requested or when strict role isolation / verification boundaries are needed
-- Route by risk, not file count:
-  - single-agent: low risk, familiar path, roughly 1-3 files — do it directly
-  - plan-light: moderate size, still low risk — short plan, single implementer, narrow verification
-  - full orchestration (planner → implementer(s) → verifier): high risk, cross-module impact, unfamiliar code, independent verification required, or the user explicitly asks
-- Hard trigger (no discretion): tasks touching auth/authorization/roles/permissions/Identity, payments/billing, data migrations/schema, secrets/crypto, multi-tenant boundaries, or infra/deploy pipelines are high risk BY DEFINITION — invoke the risky-change skill before implementing and use full orchestration. Keyword match decides, not your judgment of the change's size
-- Read-only research fans out: run up to 3-6 explorers in parallel when questions are independent. Write subtasks stay low-concurrency: group by file conflicts, at most 2 parallel writers, single writer in high-risk areas
-- Parallel implementers run only project-scoped builds/tests (single project, filtered tests) — the full solution build/test runs once, in the verify stage
-- Shared project invariants live in `tasks/notes.md`; planner and implementers read it when present
-- Code search or tracing across many files: use the explorer subagent, keep raw search output out of the main context
-- Keep subagent reports under ~300 words; summarize before continuing. Every subagent report ends with a `Runtime:` line (model, and effort if known) for later analysis
+- Classify the lane before delegating, but report it only when a subagent is dispatched or the complete orchestration workflow is used
+- Route by actual change risk, not file count, step count, cross-module scope, cross-platform scope, or unfamiliar paths:
+  - `single-agent`: known paths, local edits, routine low-risk work, or work covered by deterministic checks — the main agent completes it directly
+  - `plan-light`: non-high-risk work that benefits from a short plan — default to zero subagents and select at most one of explorer, implementer, or verifier
+  - `orchestrate-heavy`: use only when the user explicitly requests the complete workflow, or the requested change modifies security-sensitive behavior or controls, persisted data or schema, production state, core architecture, or a breaking public contract
+- File count, step count, cross-module scope, cross-platform scope, or unfamiliar paths must not trigger `orchestrate-heavy` by themselves
+- Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`; independent verification alone is verifier-only `plan-light`
+- A keyword match marks a potential high-risk domain but never decides the lane by itself. Invoke the risky-change skill and use `orchestrate-heavy` only when the requested write actually changes high-risk behavior
+- Default to no delegation and perform limited local exploration first. Delegate only when at least two signals are present:
+  - the work can complete independently without frequent context exchange
+  - it produces substantial search results, logs, or intermediate evidence
+  - it has explicit inputs, a stop condition, and a concise output format
+  - the main agent has other independent work to perform concurrently
+  - delegation isolates substantial context noise
+  - the result has observable or deterministic verification
+- Do not delegate known small edits, work whose context the main agent already holds, work requiring continuous design decisions, work the main agent must fully repeat, or merely running build, lint, or existing test commands
+- Escalate limited exploration to one explorer only when the code path does not converge quickly
+- Give an implementer one bounded cohesive delivery unit with stable ownership and observable acceptance criteria; keep product code, tests, and required documentation together
+- Use the minimum number of writers: one by default, at most two for independent units with disjoint files, and one for high-risk work
+- Use a verifier only when the user explicitly requests independent verification, the change is high risk, or deterministic checks cannot cover material semantic risk
+- Native dynamic workflows take ownership only when explicitly invoked or when the job genuinely outgrows a handful of subagents; availability alone does not bypass this gate
+- Keep subagent reports under roughly 300 words and summarize longer reports before continuing
 
 ## Verification
 
-- "Done" requires evidence: the command was actually run in this session and its output observed. Never accept an implementer's self-report — the verifier must re-run checks itself
+- "Done" requires evidence: the relevant command was actually run in this session and its output observed
+- Prefer deterministic verification in this order: compiler, formatter or linter, targeted tests, full relevant tests, then independent semantic review when materially valuable
+- Do not accept an implementer's self-report as independent verification evidence; when a verifier is required it must re-run approved checks itself
 - Use the narrowest verification command during iteration (single test file > full suite); run the full relevant suite once at the end
 - If verification cannot be run, say so explicitly and provide the exact command to run later
 - Bug fixes: when possible write the failing test that reproduces the bug first, then make it pass
@@ -40,7 +53,7 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 
 - On unexpected failure: stop adding features, preserve the error output, return to diagnosis
 - Every fix attempt must be hypothesis-driven. After 2 failed attempts on the same error, stop modifying and report current hypotheses plus eliminated causes
-- On verifier FAIL: fix only the listed items, re-verify, at most 2 iterations, then escalate to the user
+- On verifier FAIL: return only blocking items to the original implementer when available, reuse the verifier context, re-run the narrowest failed checks, and stop after 2 failed repair cycles
 
 ## Conventions
 

@@ -1,11 +1,11 @@
 ---
 name: repo-discovery
-description: Systematic playbook for entering an unfamiliar repository. Use when starting work in a codebase not yet explored in this session, before planning any change.
+description: Systematic playbook for a large unfamiliar repository when limited parent exploration has not converged and further discovery is needed before planning.
 ---
 
 # Repository discovery playbook
 
-Follow this sequence before planning changes in an unfamiliar repo. Prefer delegating steps 2-4 to the explorer subagent to keep output out of the main context.
+Follow this sequence after limited parent exploration has not converged. Use one explorer only when the delegation gate is satisfied and the remaining search would create substantial context noise.
 
 1. **Entry points**: README, CONTRIBUTING, Makefile, package.json / *.csproj / *.sln, build scripts, CI pipelines, service manifests (Dockerfile, k8s yaml)
 2. **Architecture cues**: folder structure, module boundaries, DI registration, dependency graph hints
@@ -13,10 +13,10 @@ Follow this sequence before planning changes in an unfamiliar repo. Prefer deleg
 4. **Ownership conventions**: lint rules, formatter configs, analyzers (.editorconfig, eslint, StyleCop), codegen expectations
 5. **Local verification loop**: identify the fastest command that gives signal (targeted test > full build)
 
-Deliverable — write a short list to `tasks/notes.md` (create it if missing):
+Return a concise report to the parent containing:
 
 - authoritative files (paths)
 - key commands (build, test, lint, run)
 - discovered invariants (e.g. "IDs are ULIDs", "timestamps are UTC", "this endpoint is idempotent")
 
-`tasks/notes.md` is the single shared location: the planner and every implementer read it, so invariants survive across subagent boundaries. Keep it curated — remove stale entries when they no longer hold.
+The parent passes only relevant invariants and commands to later contexts. Do not create repository note files automatically.

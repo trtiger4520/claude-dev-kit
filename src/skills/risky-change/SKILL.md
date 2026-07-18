@@ -1,15 +1,17 @@
 ---
 name: risky-change
-description: MANDATORY protocol before implementing any change touching high-risk domains. Hard trigger on keywords (any language): auth, authentication, authorization, permission, role, Identity, OAuth, JWT, SSO, payment, billing, migration, schema, secret, credential, crypto, tenant, deploy, pipeline, 授權, 認證, 身分, 角色, 權限, 登入, 金流, 付款, 遷移, 密鑰, 憑證, 部署. If the task mentions these, invoke this skill first — do not weigh task size.
+description: Mandatory protocol before implementing an actual change to security-sensitive behavior or controls, payments, persisted data or schema, secrets or cryptography, tenant boundaries, or production deployment state. Keyword mentions and read-only analysis do not trigger this protocol by themselves.
 ---
 
 # High-risk change protocol
 
 High-risk areas: auth/authz, payments/billing, data migrations and deletions, cryptography and secrets, multi-tenant data boundaries, rate limiting, infra/deployment pipelines.
 
+Use this protocol only when the requested write actually changes behavior or state in one of these areas. Keep read-only analysis, documentation-only changes, and incidental keyword matches in the normal lane unless the user explicitly requests complete orchestration or independent verification.
+
 Before implementing:
 
-1. **Grade the risk**: low (internal refactor with tests) / medium (behavior change behind flag or with migration) / high (auth, payment, migration, infra). Medium and high require the steps below
+1. **Grade the risk**: low (internal refactor with tests) / medium (behavior change behind flag or with migration) / high (security control, payment, persisted-data migration, production state). Medium and high require the steps below
 2. **Rollback strategy first**: exact steps and commands documented before the change lands — feature flag, config gating, or isolated revertible commits. Irreversible migrations must be avoided or paired with a compensating strategy
 3. **Prefer additive changes**: new code path behind a disabled-by-default flag before removing the old one
 

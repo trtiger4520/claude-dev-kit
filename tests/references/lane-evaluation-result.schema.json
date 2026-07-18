@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lane", "delegated_agents", "approval_required", "rationale"],
+  "properties": {
+    "lane": {
+      "type": "string",
+      "enum": ["single-agent", "plan-light", "orchestrate-heavy"]
+    },
+    "delegated_agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "count"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["planner", "explorer", "implementer", "verifier"]
+          },
+          "count": { "type": "integer", "minimum": 1, "maximum": 2 }
+        }
+      }
+    },
+    "approval_required": { "type": "boolean" },
+    "rationale": { "type": "string", "minLength": 1, "maxLength": 300 }
+  }
+}

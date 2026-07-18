@@ -2,13 +2,27 @@
 # 重複執行即為更新；settings.json 只合併本 kit 的 hook 註冊，不動其他既有設定
 # 執行時逐項回報：[建立]/[新增]/[覆蓋]/[取代]/[合併]/[更新]/[備份]/[未動]，皆附完整路徑
 # -DryRun：只印出將會做的動作，不寫入任何檔案
+# -Destination：明確指定目的地；未指定時依序使用 CLAUDE_CONFIG_DIR、%USERPROFILE%\.claude
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$Destination
 )
 $ErrorActionPreference = 'Stop'
 
-$src  = Join-Path $PSScriptRoot 'src'
-$dest = Join-Path $env:USERPROFILE '.claude'
+$src = Join-Path $PSScriptRoot 'src'
+if (-not [string]::IsNullOrWhiteSpace($Destination)) {
+    $requestedDestination = $Destination
+}
+elseif (-not [string]::IsNullOrWhiteSpace($env:CLAUDE_CONFIG_DIR)) {
+    $requestedDestination = $env:CLAUDE_CONFIG_DIR
+}
+elseif (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+    $requestedDestination = Join-Path $env:USERPROFILE '.claude'
+}
+else {
+    throw 'Destination is required when CLAUDE_CONFIG_DIR and USERPROFILE are unavailable'
+}
+$dest = [System.IO.Path]::GetFullPath($requestedDestination)
 
 if ($DryRun) {
     Write-Host "== claude-dev-kit 安裝/更新 -> $dest（-DryRun，僅預覽不寫入）=="

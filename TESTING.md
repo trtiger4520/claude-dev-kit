@@ -1,43 +1,42 @@
 # 委派規則測試計畫
 
-驗證 2026-07 調整後的行為：風險導向 gate、Ultracode 讓位、model inherit、read-many/write-few、Runtime 回報與 metrics.log
+目前版本驗證保守委派 gate、單一 `plan-light` 角色、實際高風險變更判斷、source boundary 與 sandbox 安裝隔離
 
-## 測試環境
+## 現行自動化環境
 
-**目標專案**：[jasontaylordev/CleanArchitecture](https://github.com/jasontaylordev/CleanArchitecture)（.NET 10 SDK 10.0.201、C#、多專案分層 + 完整測試，規模適中）
+所有測試資料只能建立在 repository 內已忽略的 `.sandbox/`，不得以使用者目錄作為安裝、設定、暫存或測試專案目的地
 
-不直接 clone 模板 repo，而是用模板產生乾淨的測試方案（SQLite 免 Docker、無前端框架）：
+- `.sandbox/claude-profile`：持久的隔離 Claude 登入與設定
+- `.sandbox/runs/<guid>/install-root`：安裝器測試
+- `.sandbox/runs/<guid>/project`：從 `tests/fixtures/lane-project` 複製的測試專案
+- `.sandbox/runs/<guid>/tmp`：Claude CLI 暫存資料
 
 ```powershell
-dotnet new install Clean.Architecture.Solution.Template
-dotnet new ca-sln --client-framework none --database sqlite --output OrchTest
-cd OrchTest
-# 模板 10.8.0 的 Directory.Build.props 設 TreatWarningsAsErrors，
-# 套件漏洞 audit 警告（NU1902/NU1903）會擋掉還原，需在同檔加：
-#   <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
-dotnet build   # 先確認基線可建置
-git init
-git add -A
-git commit -m "chore: baseline"   # 每輪測試後 git reset --hard 回基線，確保各輪起點一致
+pwsh -NoProfile -File .\tests\Test-All.ps1
+pwsh -NoProfile -File .\tests\Initialize-ClaudeSandbox.ps1
+pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1
+pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All
 ```
 
-注意：FunctionalTests / IntegrationTests 可能需要額外基礎設施，驗證以 Domain/Application 的 UnitTests 為主
+若任何目的地解析到使用者目錄，測試必須立即停止。即使已發生意外安裝，也不得檢查、異動、復原或刪除該位置
 
-> 2026-07-12 Session 0 已完成：模板 10.8.0、SDK 10.0.301、基線 commit `a191d7a`（含 NoWarn 修正），Domain/Application UnitTests 全數通過。位置 `C:\Work\Temp\CleanArchitecture\OrchTest`
+## 現行 lane 預期
 
-## 每輪執行後記錄（appendix 表格）
+| 情境 | lane | 子代理上限 |
+|---|---|---:|
+| 已知 DTO、CRUD 或文件機械修改 | single-agent / plan-light | 0 |
+| 大型陌生呼叫鏈或 CI Log | plan-light | explorer ×1 |
+| 顯式獨立驗證 | plan-light | verifier ×1 |
+| 唯讀安全或架構分析 | single-agent / plan-light | explorer ×0-1 |
+| 單一低風險 cohesive feature | plan-light | implementer ×1 |
+| 實際 authentication policy 或正式資料 migration | orchestrate-heavy | planner ×1、implementer ×1、verifier ×1，explorer 選用 ×1 |
+| 明確完整流程的兩個獨立交付單元 | orchestrate-heavy | implementer 最多 ×2 |
 
-| 欄位 | 來源 |
-|---|---|
-| task id / 日期 | 手動 |
-| 實際 lane（single-agent / plan-light / orchestrate） | 觀察 |
-| subagent 明細（角色 × 數量、是否並行） | 觀察 |
-| 各 subagent 模型 | 報告結尾 `Runtime:` 行 |
-| tokens | `/cost` |
-| wall time | 手動 |
-| verifier 結果 / 修補輪數 | 報告或 `tasks/metrics.log` |
+Live lane eval 每個 scenario 只執行一次，使用 Sonnet low、`--tools ""`、額外禁止 `Agent`、最多兩個 turns、結構化輸出與每案例 0.08 USD CLI 預算門檻。第二個 turn 僅供 Claude CLI 完成 structured output 封裝；預算門檻依 Sonnet 5 載入目前全域設定的實測成本調整，仍可透過 `-MaxBudgetUsd` 覆寫。CLI 在 API 呼叫完成後才可能判斷超出門檻，因此 runner 另行回報每案例與合計實際成本
 
-每個測試至少跑 2 次（模型行為有隨機性，單次不足以下結論）
+## 2026-07-12 歷史完整行為測試
+
+以下內容保留為舊版策略的歷史證據，其中 `Runtime:`、`tasks/metrics.log`、多 explorer fan-out 與外部 CleanArchitecture 測試位置已不再是現行驗收條件
 
 ## 測試任務
 

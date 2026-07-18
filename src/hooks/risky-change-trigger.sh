@@ -1,5 +1,5 @@
 #!/bin/sh
-# UserPromptSubmit hook：高風險關鍵字硬觸發（deterministic，不經模型判斷）
+# UserPromptSubmit hook：高風險關鍵字候選標記（deterministic，不直接決定 lane）
 # 與 risky-change-trigger.ps1 邏輯一致；JSON 解析與 regex 交給 python3
 # （macOS 裝了 Xcode Command Line Tools 即有，Linux 幾乎皆內建）
 command -v python3 >/dev/null 2>&1 || exit 0
@@ -24,16 +24,14 @@ pattern = (
 )
 
 if re.search(pattern, prompt):
-    ctx = ('HIGH-RISK KEYWORD TRIGGER (deterministic hook, not model judgment): this prompt '
-           'matches high-risk domain keywords (auth/authorization/roles/permissions/identity, '
-           'payments/billing, migration/schema, secrets/credentials/crypto, multi-tenant, '
-           'deploy/pipeline). Per global engineering rules this task is HIGH RISK by definition '
-           'and you have NO discretion here: (1) invoke the risky-change skill BEFORE any '
-           'implementation; (2) route to full orchestration (planner -> implementer(s) -> '
-           'verifier) with a single writer in the high-risk area; (3) the final report must '
-           'include the Risk & Rollback block. Exception: if after reading the code you confirm '
-           'the change does not actually touch a high-risk domain (the keyword was incidental), '
-           'state that conclusion explicitly in one sentence and proceed normally.')
+    ctx = ('POTENTIAL HIGH-RISK DOMAIN (deterministic keyword screening, not a lane decision): '
+           'first determine whether the request actually WRITES or changes security-sensitive '
+           'behavior or controls, payments, persisted data or schema, secrets or cryptography, '
+           'tenant boundaries, or production deployment state. Read-only analysis, '
+           'documentation-only work, and incidental mentions stay in single-agent or plan-light. '
+           'Only an actual high-risk change requires the risky-change skill, explicit plan '
+           'approval, orchestrate-heavy, one writer, independent verification, and a Risk & '
+           'Rollback report.')
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
                                              "additionalContext": ctx}}))
 PYEOF
