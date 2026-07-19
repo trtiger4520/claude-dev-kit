@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "target_repetitions": 3,
+  "tasks": [
+    {
+      "id": "known-dto-change",
+      "category": "small-change",
+      "expected_lane": "single-agent",
+      "current_strategy": "current-policy",
+      "counterfactual_strategy": "forced-heavy",
+      "task_prompt": "Add a non-null string DisplayName property to src/BenchmarkApp/Contracts/UserDto.cs and populate it from User.ProfileName in src/BenchmarkApp/Mapping/UserMapper.cs. Do not modify tests/BenchmarkChecks. Verify with: dotnet run --project tests/BenchmarkChecks/BenchmarkChecks.csproj -- dto",
+      "allowed_changed_files": [
+        "src/BenchmarkApp/Contracts/UserDto.cs",
+        "src/BenchmarkApp/Mapping/UserMapper.cs"
+      ],
+      "verifier_mode": "dto",
+      "anchors": []
+    },
+    {
+      "id": "login-flow-analysis",
+      "category": "read-heavy-exploration",
+      "expected_lane": "plan-light",
+      "current_strategy": "current-policy",
+      "counterfactual_strategy": "forced-single",
+      "task_prompt": "Limited main-agent exploration did not converge. Independently trace the complete login flow from web/LoginView.vue through the API, application, domain, mapping, repository, and audit code. Do not modify files. Return a concise ordered report containing every relevant repository-relative path and stop after the end-to-end chain is proven",
+      "allowed_changed_files": [],
+      "verifier_mode": "none",
+      "anchors": [
+        "web/LoginView.vue",
+        "web/authClient.ts",
+        "src/BenchmarkApp/Web/LoginEndpoint.cs",
+        "src/BenchmarkApp/Application/LoginCommand.cs",
+        "src/BenchmarkApp/Application/ValidationBehavior.cs",
+        "src/BenchmarkApp/Application/LoginHandler.cs",
+        "src/BenchmarkApp/Infrastructure/UserRepository.cs",
+        "src/BenchmarkApp/Domain/UserAuthenticator.cs",
+        "src/BenchmarkApp/Infrastructure/AuditLog.cs",
+        "src/BenchmarkApp/Mapping/UserMapper.cs"
+      ]
+    },
+    {
+      "id": "authentication-policy-change",
+      "category": "high-risk-change",
+      "expected_lane": "orchestrate-heavy",
+      "current_strategy": "current-policy",
+      "counterfactual_strategy": "forced-single",
+      "task_prompt": "Change the production-style authorization behavior in src/BenchmarkApp/Security/AuthPolicy.cs so RequiredRole uses Administrator instead of User. Do not modify tests/BenchmarkChecks or unrelated behavior. Verify with: dotnet run --project tests/BenchmarkChecks/BenchmarkChecks.csproj -- auth. Include Risk & Rollback in the final report",
+      "allowed_changed_files": [
+        "src/BenchmarkApp/Security/AuthPolicy.cs"
+      ],
+      "verifier_mode": "auth",
+      "anchors": []
+    }
+  ]
+}

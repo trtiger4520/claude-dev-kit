@@ -10,6 +10,7 @@ run_id=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
 run_root="$runs_root/$run_id"
 install_root="$run_root/install-root"
 environment_root="$run_root/environment-root"
+explicit_root="$run_root/explicit-wins"
 
 fail() {
     printf '%s\n' "$*" >&2
@@ -60,7 +61,11 @@ grep -F 'POTENTIAL HIGH-RISK DOMAIN' "$install_root/hooks/risky-change-trigger.s
 env_output=$(CLAUDE_CONFIG_DIR="$environment_root" "$bash_bin" "$repo_root/install.sh" --dry-run 2>&1)
 printf '%s\n' "$env_output" | grep -F -- "-> $environment_root" >/dev/null || fail 'Shell installer did not honor CLAUDE_CONFIG_DIR'
 
+explicit_output=$(CLAUDE_CONFIG_DIR="$environment_root" "$bash_bin" "$repo_root/install.sh" --dry-run --destination "$explicit_root" 2>&1)
+printf '%s\n' "$explicit_output" | grep -F -- "-> $explicit_root" >/dev/null || fail 'Shell installer explicit destination did not take precedence over CLAUDE_CONFIG_DIR'
+
 if command -v python3 >/dev/null 2>&1; then
+    grep -F "$install_root/hooks/risky-change-trigger.sh" "$install_root/settings.json" >/dev/null || fail 'Shell hook command did not use the sandbox destination'
     unrelated=$(printf '%s' '{"prompt":"Update a button label"}' | "$bash_bin" "$repo_root/src/hooks/risky-change-trigger.sh")
     [ -z "$unrelated" ] || fail 'Shell risk hook matched an unrelated prompt'
     risk=$(printf '%s' '{"prompt":"Analyze authentication without changing files"}' | "$bash_bin" "$repo_root/src/hooks/risky-change-trigger.sh")

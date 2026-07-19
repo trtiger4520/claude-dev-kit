@@ -2,7 +2,11 @@
 param(
     [switch]$All,
     [string[]]$ScenarioId,
-    [decimal]$MaxBudgetUsd = 0.08
+    [ValidateRange(0.01, 1000)]
+    [decimal]$MaxBudgetUsd = 0.50,
+    [Parameter(Mandatory)]
+    [ValidateRange(0.01, 1000)]
+    [decimal]$ApprovedTotalBudgetUsd
 )
 
 Set-StrictMode -Version Latest
@@ -110,9 +114,15 @@ try {
         $selectedScenarios = @($matrix.scenarios | Where-Object { $_.id -in $matrix.smoke_scenarios })
     }
 
-    $budget = $MaxBudgetUsd.ToString([System.Globalization.CultureInfo]::InvariantCulture)
     $totalObservedCost = [decimal]0
+    Write-Output "LIVE BUDGET: scenarios=$($selectedScenarios.Count) approved_total_usd=$ApprovedTotalBudgetUsd per_scenario_cap_usd=$MaxBudgetUsd"
     foreach ($scenario in $selectedScenarios) {
+        $remainingBudget = $ApprovedTotalBudgetUsd - $totalObservedCost
+        if ($remainingBudget -lt 0.01) {
+            throw "Approved live budget exhausted before '$($scenario.id)': approved=$ApprovedTotalBudgetUsd observed=$totalObservedCost"
+        }
+        $scenarioBudget = [decimal][math]::Min([double]$MaxBudgetUsd, [double]$remainingBudget)
+        $budget = $scenarioBudget.ToString([System.Globalization.CultureInfo]::InvariantCulture)
         $prompt = @"
 Classify this hypothetical task using the installed global CLAUDE.md policy
 Do not execute the task, modify files, invoke skills, or dispatch agents
@@ -139,9 +149,10 @@ Task: $($scenario.prompt)
             $budgetFailure = $null
             try {
                 $failureResult = $evaluation.StandardOutput | ConvertFrom-Json -Depth 30
+                $observedCost = if ($null -ne $failureResult.total_cost_usd) { [decimal]$failureResult.total_cost_usd } else { [decimal]0 }
+                $totalObservedCost += $observedCost
                 if ($failureResult.subtype -eq 'error_max_budget_usd') {
-                    $observedCost = [decimal]$failureResult.total_cost_usd
-                    $budgetFailure = "Claude live evaluation exceeded the per-scenario budget for '$($scenario.id)': limit=$budget USD, observed=$observedCost USD. Re-run with -MaxBudgetUsd <amount> if the model price or installed context changed"
+                    $budgetFailure = "Claude live evaluation exceeded the per-scenario budget for '$($scenario.id)': limit=$budget USD, scenario_observed=$observedCost USD, approved_total=$ApprovedTotalBudgetUsd USD, aggregate_observed=$totalObservedCost USD"
                 }
             }
             catch {
@@ -151,16 +162,22 @@ Task: $($scenario.prompt)
             throw "Claude live evaluation failed for '$($scenario.id)': $($evaluation.StandardError)$($evaluation.StandardOutput)"
         }
         $wrapper = $evaluation.StandardOutput | ConvertFrom-Json -Depth 30
-        if ($null -eq $wrapper.structured_output) { throw "Scenario '$($scenario.id)' returned no structured_output" }
-        $resultJson = $wrapper.structured_output | ConvertTo-Json -Depth 20 -Compress
-        if (-not (Test-Json -Json $resultJson -SchemaFile $schemaPath -ErrorAction SilentlyContinue)) {
-            throw "Scenario '$($scenario.id)' returned an invalid structured result: $resultJson"
-        }
-        Assert-LaneEvaluation -Scenario $scenario -Result $wrapper.structured_output
         $scenarioCost = if ($null -ne $wrapper.total_cost_usd) { [decimal]$wrapper.total_cost_usd } else { [decimal]0 }
         $totalObservedCost += $scenarioCost
+        if ($totalObservedCost -gt $ApprovedTotalBudgetUsd) {
+            throw "Observed live cost exceeded the approved total after '$($scenario.id)': approved=$ApprovedTotalBudgetUsd observed=$totalObservedCost"
+        }
+        if ($null -eq $wrapper.structured_output) {
+            throw "Scenario '$($scenario.id)' returned no structured_output: scenario_cost=$scenarioCost aggregate_observed=$totalObservedCost"
+        }
+        $resultJson = $wrapper.structured_output | ConvertTo-Json -Depth 20 -Compress
+        if (-not (Test-Json -Json $resultJson -SchemaFile $schemaPath -ErrorAction SilentlyContinue)) {
+            throw "Scenario '$($scenario.id)' returned an invalid structured result: scenario_cost=$scenarioCost aggregate_observed=$totalObservedCost result=$resultJson"
+        }
+        try { Assert-LaneEvaluation -Scenario $scenario -Result $wrapper.structured_output }
+        catch { throw "$($_.Exception.Message); scenario_cost=$scenarioCost aggregate_observed=$totalObservedCost" }
         $scenarioCostText = $scenarioCost.ToString('0.######', [System.Globalization.CultureInfo]::InvariantCulture)
-        Write-Output "PASS: $($scenario.id) (observed_cost_usd=$scenarioCostText)"
+        Write-Output "PASS: $($scenario.id) (observed_cost_usd=$scenarioCostText aggregate_observed_usd=$totalObservedCost)"
     }
 
     $totalCostText = $totalObservedCost.ToString('0.######', [System.Globalization.CultureInfo]::InvariantCulture)

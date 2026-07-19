@@ -36,6 +36,7 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 - Escalate limited exploration to one explorer only when the code path does not converge quickly
 - Give an implementer one bounded cohesive delivery unit with stable ownership and observable acceptance criteria; keep product code, tests, and required documentation together
 - Use the minimum number of writers: one by default, at most two for independent units with disjoint files, and one for high-risk work
+- Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier. One explorer is optional only for an unanswered code-path question after approval
 - Use a verifier only when the user explicitly requests independent verification, the change is high risk, or deterministic checks cannot cover material semantic risk
 - Native dynamic workflows take ownership only when explicitly invoked or when the job genuinely outgrows a handful of subagents; availability alone does not bypass this gate
 - Keep subagent reports under roughly 300 words and summarize longer reports before continuing

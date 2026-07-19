@@ -14,9 +14,11 @@
 ```powershell
 pwsh -NoProfile -File .\tests\Test-All.ps1
 pwsh -NoProfile -File .\tests\Initialize-ClaudeSandbox.ps1
-pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1
-pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All
+pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -ApprovedTotalBudgetUsd 0.32
+pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All -ApprovedTotalBudgetUsd 0.96
 ```
+
+`auth status` 只檢查本機登入紀錄；若 Live 呼叫回傳 401，使用 `Initialize-ClaudeSandbox.ps1 -ForceLogin` 明確重新整理隔離 profile 的 Claude subscription 登入。此流程不先執行 `auth logout`，也不接觸使用者預設 Claude 設定
 
 若任何目的地解析到使用者目錄，測試必須立即停止。即使已發生意外安裝，也不得檢查、異動、復原或刪除該位置
 
@@ -32,7 +34,52 @@ pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All
 | 實際 authentication policy 或正式資料 migration | orchestrate-heavy | planner ×1、implementer ×1、verifier ×1，explorer 選用 ×1 |
 | 明確完整流程的兩個獨立交付單元 | orchestrate-heavy | implementer 最多 ×2 |
 
-Live lane eval 每個 scenario 只執行一次，使用 Sonnet low、`--tools ""`、額外禁止 `Agent`、最多兩個 turns、結構化輸出與每案例 0.08 USD CLI 預算門檻。第二個 turn 僅供 Claude CLI 完成 structured output 封裝；預算門檻依 Sonnet 5 載入目前全域設定的實測成本調整，仍可透過 `-MaxBudgetUsd` 覆寫。CLI 在 API 呼叫完成後才可能判斷超出門檻，因此 runner 另行回報每案例與合計實際成本
+`orchestrate-heavy` 的固定治理骨架為 planner ×1、writer 前明確核准、verifier ×1；explorer 只在核准後仍有未解答程式路徑問題時選用。兩個 disjoint cohesive units 可以使用 implementer ×2，但不省略 planner、核准或 verifier
+
+Live lane eval 每個 scenario 只執行一次，使用 Sonnet low、`--tools ""`、額外禁止 `Agent`、最多兩個 turns與結構化輸出。`-ApprovedTotalBudgetUsd` 明確限制整批核准額度，單次 CLI 門檻預設 0.50 USD；runner 會把成功及錯誤結果的已觀察成本納入整批累計，並只把剩餘額度交給下一案。第二個 turn 僅供 Claude CLI 完成 structured output 封裝。CLI 在單次 API 呼叫完成後才可能判斷超出門檻，因此參數不是帳單的絕對硬上限
+
+## 現行任務成本基準
+
+`tests/Invoke-CostBenchmark.ps1` 量測 lane 分類成本與三種代表性任務的真實執行成本。它不使用本 repository 作為 Claude 寫入目標，而是為每筆量測從 `tests/fixtures/cost-benchmark` 建立全新的 `.sandbox/runs/<benchmark-id>/projects/<cell>` 副本
+
+量測矩陣：
+
+| 類型 | 任務數 | 策略數 | 重複次數 | 筆數 |
+|---|---:|---:|---:|---:|
+| Lane 分類 | 3 | 1 | 3 | 9 |
+| 任務執行 | 3 | 2 | 3 | 18 |
+| 合計 | | | | 27 |
+
+每筆資料記錄 CLI 回報的成本、時間、Token、cache token、turns、lane、Agent 角色、修改範圍與確定性驗收結果。重試前的失敗結果只要 Claude CLI 提供 `total_cost_usd` 仍會以 `record_state=superseded-attempt` 保留在 CSV 並計入作業總成本，但不混入策略均值與曲線
+
+`forced-single` 不使用 Claude CLI `--safe-mode`，因為 safe mode 會同時移除全域 CLAUDE.md、Hook、Skill 與 Agent 設定，讓 A/B 比較混入政策缺席的影響。Runner 保留同一套已安裝政策，只以明確 counterfactual prompt 與 `--disallowed-tools Agent` 移除委派能力
+
+預算流程刻意拆成兩階段：
+
+1. 使用 `-Phase Calibrate -ApprovedBudgetUsd <校準預算>` 明確核准第一輪九筆資料
+2. runner 依校準資料估算剩餘兩輪，再乘上 25% 緩衝
+3. 人員確認投影後，使用同一個 Benchmark ID 與新的 `-ApprovedBudgetUsd` 執行 `-Phase Complete`
+
+完整命令：
+
+```powershell
+pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ApprovedBudgetUsd <校準預算>
+pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Complete -BenchmarkId <benchmark-id> -ApprovedBudgetUsd <核准的剩餘預算>
+```
+
+安全與可比較性條件：
+
+- 兩階段之間 Claude CLI 版本與 policy fingerprint 必須相同
+- 兩階段之間隔離 profile 的實際安裝 fingerprint 必須相同，包含 Agent model／effort 與 managed settings
+- 兩階段之間任務定義與合成 fixture fingerprint 必須相同
+- 每筆執行使用無外部套件相依的合成 fixture，並在變更前建立本地 Git baseline
+- 高風險現行策略必須先輸出核准標記，核准前不得有 tracked 或 non-ignored untracked 變更
+- 所有 Claude 設定、暫存、raw transcript 與工作專案只能存在 `.sandbox/`
+- 校準或完整 runner 都沒有預設可用預算，缺少 `-ApprovedBudgetUsd` 會直接拒絕執行
+- 不因單筆失敗自動重跑；只有明確傳入 `-RetryFailed` 才會保留前次 attempt 後重試
+- 校準中斷時可用原 Benchmark ID 續跑，已完成 cell 會略過；重試既有錯誤 cell 另須新的明確預算與 `-RetryFailed`
+
+完整執行成功後，`tests/New-CostReport.ps1` 會建立 Markdown、CSV 與 SVG。Markdown 提供策略均值、中位數、範圍、時間、Token、品質通過率與相對差異；SVG 使用共用 Y 軸顯示三個任務各三輪的累積 API 等價成本。成本是 Claude CLI 的 API 等價估算，不是訂閱帳單
 
 ## 2026-07-12 歷史完整行為測試
 

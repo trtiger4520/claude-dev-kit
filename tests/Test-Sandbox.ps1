@@ -85,9 +85,9 @@ function Assert-InstallerDestinationOutput {
         throw "Installer did not report the expected destination: $expected"
     }
     if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
-        $protectedDefault = [System.IO.Path]::GetFullPath((Join-Path $env:USERPROFILE '.claude'))
-        if (-not $expected.Equals($protectedDefault, [System.StringComparison]::OrdinalIgnoreCase) -and $Output.Contains("-> $protectedDefault")) {
-            throw "STOP: installer output resolved to the protected user destination $protectedDefault. Do not inspect, modify, restore, or delete that location"
+        $protectedProfile = [System.IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\', '/')
+        if (-not (Test-PathPrefix -Path $expected -Root $protectedProfile) -and $Output.Contains("-> $protectedProfile")) {
+            throw "STOP: installer output resolved inside the protected user profile $protectedProfile. Do not inspect, modify, restore, or delete that location"
         }
     }
 }

@@ -27,6 +27,7 @@ foreach ($required in @(
     'Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`',
     'Delegate only when at least two signals are present',
     'File count, step count, cross-module scope, cross-platform scope, or unfamiliar paths',
+    'Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier',
     'availability alone does not bypass this gate'
 )) { Assert-Contains -Content $claude -Expected $required -File 'src/CLAUDE.md' }
 foreach ($forbidden in @('3-6 explorers', 'Use proactively', 'Keyword match decides', 'high risk BY DEFINITION')) {
@@ -45,14 +46,31 @@ Assert-Contains -Content $explorer -Expected 'limited parent exploration has not
 Assert-Contains -Content $implementer -Expected 'one cohesive delivery unit' -File 'src/agents/implementer.md'
 Assert-Contains -Content $implementer -Expected 'disallowedTools: Agent' -File 'src/agents/implementer.md'
 Assert-Contains -Content $verifier -Expected 'You never modify files' -File 'src/agents/verifier.md'
+foreach ($readOnlyAgent in @(
+    @{ Name = 'planner'; Content = $planner },
+    @{ Name = 'explorer'; Content = $explorer },
+    @{ Name = 'verifier'; Content = $verifier }
+)) {
+    Assert-NotContains -Content $readOnlyAgent.Content -Forbidden 'Edit,' -File "src/agents/$($readOnlyAgent.Name).md"
+    Assert-NotContains -Content $readOnlyAgent.Content -Forbidden 'Write,' -File "src/agents/$($readOnlyAgent.Name).md"
+    Assert-NotContains -Content $readOnlyAgent.Content -Forbidden 'Agent,' -File "src/agents/$($readOnlyAgent.Name).md"
+    Assert-NotContains -Content $readOnlyAgent.Content -Forbidden 'permissionMode: acceptEdits' -File "src/agents/$($readOnlyAgent.Name).md"
+}
 
 $orchestrate = Read-RepoFile 'src/commands/orchestrate.md'
 $verify = Read-RepoFile 'src/commands/verify.md'
 Assert-Contains -Content $orchestrate -Expected 'Use one writer by default' -File 'src/commands/orchestrate.md'
 Assert-Contains -Content $orchestrate -Expected 'at most one explorer' -File 'src/commands/orchestrate.md'
 Assert-Contains -Content $orchestrate -Expected 'source-boundary skill' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $orchestrate -Expected 'Stop until I explicitly approve it' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $orchestrate -Expected 'two only for independent units with disjoint files' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $orchestrate -Expected 'one for high-risk work' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $orchestrate -Expected 're-use the same verifier context' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $orchestrate -Expected 'Stop after two failed repair cycles' -File 'src/commands/orchestrate.md'
 Assert-NotContains -Content $orchestrate -Forbidden 'tasks/metrics.log' -File 'src/commands/orchestrate.md'
 Assert-NotContains -Content $orchestrate -Forbidden 'tasks/notes.md' -File 'src/commands/orchestrate.md'
+Assert-Contains -Content $verify -Expected 'Before dispatching' -File 'src/commands/verify.md'
+Assert-Contains -Content $verify -Expected 'After it returns' -File 'src/commands/verify.md'
 Assert-Contains -Content $verify -Expected 'Do not revert, delete, or repair verifier changes' -File 'src/commands/verify.md'
 
 $riskySkill = Read-RepoFile 'src/skills/risky-change/SKILL.md'
