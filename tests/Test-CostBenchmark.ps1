@@ -215,6 +215,15 @@ try {
     if (($svg.SelectNodes('//*[local-name()="polyline"]')).Count -ne 6) { throw 'Cost SVG must contain two curves for each of three tasks' }
     if ($svgText -match '#[0-9a-fA-F]{3,8}') { throw 'Cost SVG must not hardcode light or dark palette colors' }
 
+    Remove-Item -LiteralPath $attemptsRoot -Recurse -Force
+    New-Item -ItemType Directory -Path $attemptsRoot | Out-Null
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'New-CostReport.ps1') -BenchmarkId $benchmarkId -OutputDirectory $reportRoot
+    if ($LASTEXITCODE -ne 0) { throw 'Cost report generation failed when no superseded attempts exist' }
+    $reportWithoutAttempts = Get-Content -Raw -LiteralPath (Join-Path $reportRoot 'task-cost-report.md')
+    if (-not $reportWithoutAttempts.Contains('保留的重試 attempt：0 筆')) {
+        throw 'Cost report did not represent an empty superseded-attempt set'
+    }
+
     $outsideOutput = Join-Path (Split-Path (Get-RepositoryRoot) -Parent) ("claude-dev-kit-report-outside-probe-{0}" -f [guid]::NewGuid().ToString('N'))
     $outsideResult = & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'New-CostReport.ps1') -BenchmarkId $benchmarkId -OutputDirectory $outsideOutput 2>&1 | Out-String
     if ($LASTEXITCODE -eq 0 -or -not $outsideResult.Contains('Report output must stay inside')) {

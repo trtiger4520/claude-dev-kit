@@ -79,7 +79,7 @@ pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Complete -Benchmar
 - 不因單筆失敗自動重跑；只有明確傳入 `-RetryFailed` 才會保留前次 attempt 後重試
 - 校準中斷時可用原 Benchmark ID 續跑，已完成 cell 會略過；重試既有錯誤 cell 另須新的明確預算與 `-RetryFailed`
 
-完整執行成功後，`tests/New-CostReport.ps1` 會建立 Markdown、CSV 與 SVG。Markdown 提供策略均值、中位數、範圍、時間、Token、品質通過率與相對差異；SVG 使用共用 Y 軸顯示三個任務各三輪的累積 API 等價成本。成本是 Claude CLI 的 API 等價估算，不是訂閱帳單
+完整執行成功後，`tests/New-CostReport.ps1` 會建立 Markdown、CSV 與 SVG。Markdown 提供策略均值、中位數、範圍、時間、Token、策略驗收通過率與相對差異；SVG 使用共用 Y 軸顯示三個任務各三輪的累積 API 等價成本。策略驗收包含共通交付檢查及該策略承諾的工作流程條件，不等同純產品品質分數。成本是 Claude CLI 的 API 等價估算，不是訂閱帳單
 
 ## 2026-07-12 歷史完整行為測試
 

@@ -208,7 +208,7 @@ $markdown = [System.Text.StringBuilder]::new()
 [void]$markdown.AppendLine(('- Quality contract：`{0}`' -f (Get-PropertyValue $manifest 'quality_contract_version' 'unknown')))
 [void]$markdown.AppendLine("- 樣本：$($records.Count) / $expectedRecordCount")
 $completedCost = [double](($records | Measure-Object -Property total_cost_usd -Sum).Sum)
-$attemptCost = [double](($attemptRecords | Measure-Object -Property total_cost_usd -Sum).Sum)
+$attemptCost = if ($attemptRecords.Count -eq 0) { 0 } else { [double](($attemptRecords | Measure-Object -Property total_cost_usd -Sum).Sum) }
 [void]$markdown.AppendLine("- 完成樣本成本：`$$((Format-Number $completedCost))` USD")
 [void]$markdown.AppendLine("- 保留的重試 attempt：$($attemptRecords.Count) 筆，`$$((Format-Number $attemptCost))` USD")
 [void]$markdown.AppendLine("- Benchmark 作業總成本：`$$((Format-Number ($completedCost + $attemptCost)))` USD")
@@ -218,7 +218,7 @@ $attemptCost = [double](($attemptRecords | Measure-Object -Property total_cost_u
 [void]$markdown.AppendLine()
 [void]$markdown.AppendLine('## 執行策略比較')
 [void]$markdown.AppendLine()
-[void]$markdown.AppendLine('| 任務 | 策略 | 輪數 | 平均 USD | Median | 範圍 | 平均秒數 | 平均 Token | 品質通過 |')
+[void]$markdown.AppendLine('| 任務 | 策略 | 輪數 | 平均 USD | Median | 範圍 | 平均秒數 | 平均 Token | 策略驗收 |')
 [void]$markdown.AppendLine('|---|---|---:|---:|---:|---:|---:|---:|---:|')
 foreach ($task in $definition.tasks) {
     foreach ($strategy in @($task.current_strategy, $task.counterfactual_strategy)) {
@@ -229,9 +229,11 @@ foreach ($task in $definition.tasks) {
     }
 }
 [void]$markdown.AppendLine()
+[void]$markdown.AppendLine('策略驗收同時包含共通交付檢查與該策略承諾的工作流程條件，用於判斷策略是否完整落實，不等同純產品品質分數')
+[void]$markdown.AppendLine()
 [void]$markdown.AppendLine('## 現行策略相對差異')
 [void]$markdown.AppendLine()
-[void]$markdown.AppendLine('| 任務 | 反事實策略 | 成本差異 | 時間差異 | 品質通過差異 |')
+[void]$markdown.AppendLine('| 任務 | 反事實策略 | 成本差異 | 時間差異 | 策略驗收差異 |')
 [void]$markdown.AppendLine('|---|---|---:|---:|---:|')
 foreach ($task in $definition.tasks) {
     $currentRows = @($executionRows | Where-Object { $_.task_id -eq $task.id -and $_.strategy -eq $task.current_strategy })
