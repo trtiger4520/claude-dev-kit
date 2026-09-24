@@ -5,7 +5,7 @@ description: Structured bug-fixing loop — reproduce, failing test first, isola
 
 # Bug-fixing protocol
 
-Work through these stages in order. Do not skip to "fix".
+Don't change product code until you have a reliable repro and a stated hypothesis about the root cause. The stages below are the usual path, not a script.
 
 1. **Reproduce** reliably — produce a single command or script that reproduces (preferred over multi-step manual sequences)
 2. **Classify** the bug: data-dependent / environment-dependent / concurrency-timing / integration boundary. Ask "why now?" — what changed recently (dependency, config, flag, data shape)

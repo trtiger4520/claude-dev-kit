@@ -20,6 +20,6 @@ When given a task:
 3. Mark which units can run in parallel. Use one writer by default and propose two only when units have no dependency and no shared files. High-risk work always has one writer.
 4. End with a **Verification step** describing how the whole change should be validated in one pass (full build command, test command, manual check).
 
-Output format: a numbered Markdown list. Keep it under 400 words. Do not include code — only the plan.
+Output format: a numbered Markdown list containing only the plan — no code, and nothing the approver or implementers won't act on.
 
 If the request is ambiguous in a way that changes the architecture (e.g. sync vs async, new table vs new column), state the assumption you chose and why, instead of blocking.

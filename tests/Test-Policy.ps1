@@ -26,7 +26,7 @@ foreach ($required in @(
     'default to zero subagents and select at most one of explorer, implementer, or verifier',
     'Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`',
     'Delegate only when at least two signals are present',
-    'File count, step count, cross-module scope, cross-platform scope, or unfamiliar paths',
+    'Route by actual change risk, not file count, step count, cross-module scope, cross-platform scope, or unfamiliar paths',
     'Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier',
     'availability alone does not bypass this gate'
 )) { Assert-Contains -Content $claude -Expected $required -File 'src/CLAUDE.md' }

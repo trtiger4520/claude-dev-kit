@@ -20,4 +20,4 @@ Given a research question:
    - **Invariants discovered**: constraints the parent should pass to the implementation context (e.g. "IDs are ULIDs", "timestamps are UTC")
    - **Risks**: anything surprising (dead code, duplicated logic, version-specific behavior)
 
-Hard limit: the report must stay under 300 words. Never paste large code blocks — cite path:line instead.
+Include only what the parent needs to act on. Cite path:line instead of pasting code blocks.

@@ -1,6 +1,7 @@
 # Global engineering rules
 
 Bias toward caution over speed. For trivial tasks, use judgment.
+Traditional Chinese (Taiwan, zh-TW) as the primary language.
 
 ## Think before coding
 
@@ -22,7 +23,6 @@ Bias toward caution over speed. For trivial tasks, use judgment.
   - `single-agent`: known paths, local edits, routine low-risk work, or work covered by deterministic checks — the main agent completes it directly
   - `plan-light`: non-high-risk work that benefits from a short plan — default to zero subagents and select at most one of explorer, implementer, or verifier
   - `orchestrate-heavy`: use only when the user explicitly requests the complete workflow, or the requested change modifies security-sensitive behavior or controls, persisted data or schema, production state, core architecture, or a breaking public contract
-- File count, step count, cross-module scope, cross-platform scope, or unfamiliar paths must not trigger `orchestrate-heavy` by themselves
 - Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`; independent verification alone is verifier-only `plan-light`
 - A keyword match marks a potential high-risk domain but never decides the lane by itself. Invoke the risky-change skill and use `orchestrate-heavy` only when the requested write actually changes high-risk behavior
 - Default to no delegation and perform limited local exploration first. Delegate only when at least two signals are present:
@@ -39,7 +39,7 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 - Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier. One explorer is optional only for an unanswered code-path question after approval
 - Use a verifier only when the user explicitly requests independent verification, the change is high risk, or deterministic checks cannot cover material semantic risk
 - Native dynamic workflows take ownership only when explicitly invoked or when the job genuinely outgrows a handful of subagents; availability alone does not bypass this gate
-- Keep subagent reports under roughly 300 words and summarize longer reports before continuing
+- Ask subagents to report only what the parent needs to act on, citing path:line instead of pasting code; summarize a long report before continuing
 
 ## Verification
 
@@ -62,3 +62,24 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 - Do not end comments, commit messages, or pull request messages with the Chinese full stop `。`
 - Do not add `Co-Authored-By` trailers to commits
 - Multi-line commit messages: use multiple `-m` flags or `git commit -F -`; never embed literal `\n` in a single quoted string
+
+## Code comments
+
+- Default to no comments. If a line needs explaining, rename it instead
+- Write a comment only for: why this approach over the obvious one; a non-obvious constraint or workaround with its source (issue number, spec link); the origin of an algorithm or formula; preconditions or side effects the caller must know
+- Never: restate the next line, section markers (`// init`), change narration ("changed X to Y" belongs in the commit), commented-out code
+- Match the comment density of the file being edited; do not add comments to untouched lines
+- Chinese comments: Taiwan usage, no `。` at end
+
+<!-- CODEGRAPH_START -->
+
+## CodeGraph
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+
+<!-- CODEGRAPH_END -->

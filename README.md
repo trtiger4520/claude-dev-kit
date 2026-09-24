@@ -9,7 +9,7 @@
 | CLAUDE.md | 每次都適用的行為規則                                   | 每個對話   | 保留精簡且可直接執行的政策     |
 | agents/   | planner、explorer、implementer、verifier               | 被委派時   | 職責分離、獨立 context         |
 | commands/ | /orchestrate、/verify                                  | 手動觸發   | 強制走完整流程                 |
-| skills/   | repo-discovery、bugfix-protocol、risky-change、source-boundary、lessons | 情境符合時 | 冗長的檢查清單不該常駐 context |
+| skills/   | repo-discovery、bugfix-protocol、risky-change、source-boundary、lessons、concise-tw | 情境符合時 | 冗長的檢查清單不該常駐 context |
 | hooks/    | risky-change-trigger（UserPromptSubmit 關鍵字候選標記） | 每次送出 prompt | 便宜篩選潛在風險，再依實際變更決定 lane |
 
 skills 的命名刻意避開常見的 plugin skill 名稱（debug、code-review、testing-strategy 等），
