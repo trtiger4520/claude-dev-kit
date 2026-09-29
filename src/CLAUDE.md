@@ -60,7 +60,6 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
 
 - All replies will be conducted in Traditional Chinese (zh-TW) as the primary language
 - Do not end comments, commit messages, or pull request messages with the Chinese full stop `。`
-- Do not add `Co-Authored-By` trailers to commits
 - Multi-line commit messages: use multiple `-m` flags or `git commit -F -`; never embed literal `\n` in a single quoted string
 
 ## Code comments
