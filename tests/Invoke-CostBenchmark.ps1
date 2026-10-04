@@ -77,6 +77,8 @@ function Invoke-ExternalJsonProcess {
     $startInfo.RedirectStandardInput = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $startInfo.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
     foreach ($argument in $Arguments) { [void]$startInfo.ArgumentList.Add($argument) }
     $process = [System.Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
@@ -147,6 +149,8 @@ function Invoke-ClaudeStreamProcess {
     $startInfo.RedirectStandardInput = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $startInfo.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
     foreach ($argument in $arguments) { [void]$startInfo.ArgumentList.Add($argument) }
 
     $process = [System.Diagnostics.Process]::new()

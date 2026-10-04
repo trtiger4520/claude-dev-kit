@@ -39,6 +39,8 @@ function Invoke-ExternalProcess {
     $startInfo.RedirectStandardInput = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $startInfo.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
     foreach ($argument in $Arguments) { [void]$startInfo.ArgumentList.Add($argument) }
     $process = [System.Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
