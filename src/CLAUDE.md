@@ -44,7 +44,10 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
 ## Verification
 
 - "Done" requires evidence: the relevant command was actually run in this session and its output observed
-- Prefer deterministic verification in this order: compiler, formatter or linter, targeted tests, full relevant tests, then independent semantic review when materially valuable
+- Pick the cheapest deterministic check that can actually catch the failure mode, run it once, and stop
+  Order of preference when choosing: compiler > formatter or linter > targeted tests > full relevant tests
+- Escalate to a wider check only when the narrow one cannot cover the change
+- Independent semantic review is a separate lane decision, not a step in this list
 - Do not accept an implementer's self-report as independent verification evidence; when a verifier is required it must re-run approved checks itself
 - Use the narrowest verification command during iteration (single test file > full suite); run the full relevant suite once at the end
 - If verification cannot be run, say so explicitly and provide the exact command to run later
