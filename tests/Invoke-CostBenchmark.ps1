@@ -483,7 +483,7 @@ try {
                 }
                 else { '' }
                 $approvalInstruction = if ($requiresApproval) {
-                    "`nBefore any file write, present the plan and end that planning turn with BENCHMARK_APPROVAL_REQUIRED on its own line. Wait for the next user message before implementation."
+                    "`nWhen your workflow reaches the user-approval step before any file write, end that turn with BENCHMARK_APPROVAL_REQUIRED on its own line. Wait for the next user message before implementation."
                 }
                 else { '' }
                 $call = Invoke-ClaudeStreamProcess -ClaudePath $claude.Source -ProjectRoot $projectRoot -Prompt ($promptPrefix + $cell.task.task_prompt + $approvalInstruction) -BudgetUsd $runBudget -Strategy $cell.strategy -RawOutputPath $rawPath -RequiresApproval:$requiresApproval

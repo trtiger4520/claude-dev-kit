@@ -22,7 +22,7 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
 - Route by actual change risk, not file count, step count, cross-module scope, cross-platform scope, or unfamiliar paths:
   - `single-agent`: known paths, local edits, routine low-risk work, or work covered by deterministic checks — the main agent completes it directly
   - `plan-light`: non-high-risk work that benefits from a short plan — default to zero subagents and select at most one of explorer, implementer, or verifier
-  - `orchestrate-heavy`: use only when the user explicitly requests the complete workflow, or the requested change modifies security-sensitive behavior or controls, persisted data or schema, production state, core architecture, or a breaking public contract
+  - `orchestrate-heavy`: use only when the user explicitly requests the complete workflow, or the requested change modifies security-sensitive behavior or controls (including authentication and authorization rules), persisted data or schema, production state, core architecture, or a breaking public contract
 - Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`; independent verification alone is verifier-only `plan-light`
 - A keyword match marks a potential high-risk domain but never decides the lane by itself. Invoke the risky-change skill and use `orchestrate-heavy` only when the requested write actually changes high-risk behavior
 - Default to no delegation and perform limited local exploration first. Delegate only when at least two signals are present:
@@ -36,7 +36,7 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
 - Escalate limited exploration to one explorer only when the code path does not converge quickly
 - Give an implementer one bounded cohesive delivery unit with stable ownership and observable acceptance criteria; keep product code, tests, and required documentation together
 - Use the minimum number of writers: one by default, at most two for independent units with disjoint files, and one for high-risk work
-- Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier. One explorer is optional only for an unanswered code-path question after approval
+- Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier. One explorer is optional only for an unanswered code-path question after approval. The plan comes from the planner subagent and the writer is one implementer, never the main agent. This applies regardless of change size; the delegation gates above do not override it
 - Use a verifier only when the user explicitly requests independent verification, the change is high risk, or deterministic checks cannot cover material semantic risk
 - Native dynamic workflows take ownership only when explicitly invoked or when the job genuinely outgrows a handful of subagents; availability alone does not bypass this gate
 - Ask subagents to report only what the parent needs to act on, citing path:line instead of pasting code; summarize a long report before continuing

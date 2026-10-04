@@ -29,3 +29,10 @@ Expanded verification (medium/high):
 - security: inputs validated at boundaries, no secrets in code or logs, least privilege
 
 Deliverable: implementation plan must include a "Risk & Rollback" block — risk level, affected components, rollback steps, monitoring signals
+
+Execution (`orchestrate-heavy`, regardless of change size):
+
+1. One planner subagent produces the plan, including the Risk & Rollback block
+2. Stop for explicit user approval before any write
+3. One implementer subagent makes the change; the main agent does not edit files itself
+4. One verifier subagent independently re-runs the approved checks before the final report
