@@ -8,67 +8,67 @@
   <line x1="64" y1="332" x2="304" y2="332" class="grid"/>
   <text x="56" y="336" text-anchor="end" class="tick">$0.000</text>
   <line x1="64" y1="202" x2="304" y2="202" class="grid"/>
-  <text x="56" y="206" text-anchor="end" class="tick">$1.150</text>
+  <text x="56" y="206" text-anchor="end" class="tick">$0.674</text>
   <line x1="64" y1="72" x2="304" y2="72" class="grid"/>
-  <text x="56" y="76" text-anchor="end" class="tick">$2.300</text>
+  <text x="56" y="76" text-anchor="end" class="tick">$1.348</text>
   <line x1="64" y1="72" x2="64" y2="332" class="axis"/>
   <line x1="64" y1="332" x2="304" y2="332" class="axis"/>
   <text x="64" y="354" text-anchor="middle" class="tick">R1</text>
   <text x="184" y="354" text-anchor="middle" class="tick">R2</text>
   <text x="304" y="354" text-anchor="middle" class="tick">R3</text>
-  <polyline points="64,316.12 184,300.14 304,284.14" class="series"/>
-  <circle cx="64" cy="316.12" r="3.5" class="point"/>
-  <circle cx="184" cy="300.14" r="3.5" class="point"/>
-  <circle cx="304" cy="284.14" r="3.5" class="point"/>
-  <text x="310" y="288.140467416628" class="tick">現行 $0.423</text>
-  <polyline points="64,287.62 184,218.3 304,72" class="series counter"/>
-  <circle cx="64" cy="287.62" r="3.5" class="point"/>
-  <circle cx="184" cy="218.3" r="3.5" class="point"/>
+  <polyline points="64,291.13 184,264.72 304,235.71" class="series"/>
+  <circle cx="64" cy="291.13" r="3.5" class="point"/>
+  <circle cx="184" cy="264.72" r="3.5" class="point"/>
+  <circle cx="304" cy="235.71" r="3.5" class="point"/>
+  <text x="310" y="239.71424817557" class="tick">現行 $0.499</text>
+  <polyline points="64,242.47 184,159 304,72" class="series counter"/>
+  <circle cx="64" cy="242.47" r="3.5" class="point"/>
+  <circle cx="184" cy="159" r="3.5" class="point"/>
   <circle cx="304" cy="72" r="3.5" class="point"/>
-  <text x="310" y="76" class="tick">反事實 $2.300</text>
+  <text x="310" y="76" class="tick">反事實 $1.348</text>
   <text x="384" y="54" class="facet-title">login-flow-analysis</text>
   <line x1="384" y1="332" x2="624" y2="332" class="grid"/>
   <text x="376" y="336" text-anchor="end" class="tick">$0.000</text>
   <line x1="384" y1="202" x2="624" y2="202" class="grid"/>
-  <text x="376" y="206" text-anchor="end" class="tick">$1.150</text>
+  <text x="376" y="206" text-anchor="end" class="tick">$0.674</text>
   <line x1="384" y1="72" x2="624" y2="72" class="grid"/>
-  <text x="376" y="76" text-anchor="end" class="tick">$2.300</text>
+  <text x="376" y="76" text-anchor="end" class="tick">$1.348</text>
   <line x1="384" y1="72" x2="384" y2="332" class="axis"/>
   <line x1="384" y1="332" x2="624" y2="332" class="axis"/>
   <text x="384" y="354" text-anchor="middle" class="tick">R1</text>
   <text x="504" y="354" text-anchor="middle" class="tick">R2</text>
   <text x="624" y="354" text-anchor="middle" class="tick">R3</text>
-  <polyline points="384,305.45 504,276.95 624,251.66" class="series"/>
-  <circle cx="384" cy="305.45" r="3.5" class="point"/>
-  <circle cx="504" cy="276.95" r="3.5" class="point"/>
-  <circle cx="624" cy="251.66" r="3.5" class="point"/>
-  <text x="630" y="255.663796774358" class="tick">現行 $0.711</text>
-  <polyline points="384,284.31 504,254.12 624,221.9" class="series counter"/>
-  <circle cx="384" cy="284.31" r="3.5" class="point"/>
-  <circle cx="504" cy="254.12" r="3.5" class="point"/>
-  <circle cx="624" cy="221.9" r="3.5" class="point"/>
-  <text x="630" y="225.901972288618" class="tick">反事實 $0.974</text>
+  <polyline points="384,304.28 504,272.72 624,241.54" class="series"/>
+  <circle cx="384" cy="304.28" r="3.5" class="point"/>
+  <circle cx="504" cy="272.72" r="3.5" class="point"/>
+  <circle cx="624" cy="241.54" r="3.5" class="point"/>
+  <text x="630" y="245.541586257032" class="tick">現行 $0.469</text>
+  <polyline points="384,292.9 504,265.37 624,239.48" class="series counter"/>
+  <circle cx="384" cy="292.9" r="3.5" class="point"/>
+  <circle cx="504" cy="265.37" r="3.5" class="point"/>
+  <circle cx="624" cy="239.48" r="3.5" class="point"/>
+  <text x="630" y="243.475577022359" class="tick">反事實 $0.480</text>
   <text x="704" y="54" class="facet-title">authentication-policy-change</text>
   <line x1="704" y1="332" x2="944" y2="332" class="grid"/>
   <text x="696" y="336" text-anchor="end" class="tick">$0.000</text>
   <line x1="704" y1="202" x2="944" y2="202" class="grid"/>
-  <text x="696" y="206" text-anchor="end" class="tick">$1.150</text>
+  <text x="696" y="206" text-anchor="end" class="tick">$0.674</text>
   <line x1="704" y1="72" x2="944" y2="72" class="grid"/>
-  <text x="696" y="76" text-anchor="end" class="tick">$2.300</text>
+  <text x="696" y="76" text-anchor="end" class="tick">$1.348</text>
   <line x1="704" y1="72" x2="704" y2="332" class="axis"/>
   <line x1="704" y1="332" x2="944" y2="332" class="axis"/>
   <text x="704" y="354" text-anchor="middle" class="tick">R1</text>
   <text x="824" y="354" text-anchor="middle" class="tick">R2</text>
   <text x="944" y="354" text-anchor="middle" class="tick">R3</text>
-  <polyline points="704,310.4 824,289.12 944,267.36" class="series"/>
-  <circle cx="704" cy="310.4" r="3.5" class="point"/>
-  <circle cx="824" cy="289.12" r="3.5" class="point"/>
-  <circle cx="944" cy="267.36" r="3.5" class="point"/>
-  <text x="950" y="271.3552464434" class="tick">現行 $0.572</text>
-  <polyline points="704,314.62 824,299.5 944,284.44" class="series counter"/>
-  <circle cx="704" cy="314.62" r="3.5" class="point"/>
-  <circle cx="824" cy="299.5" r="3.5" class="point"/>
-  <circle cx="944" cy="284.44" r="3.5" class="point"/>
-  <text x="950" y="288.439298010796" class="tick">反事實 $0.421</text>
+  <polyline points="704,296.39 824,262.08 944,228.98" class="series"/>
+  <circle cx="704" cy="296.39" r="3.5" class="point"/>
+  <circle cx="824" cy="262.08" r="3.5" class="point"/>
+  <circle cx="944" cy="228.98" r="3.5" class="point"/>
+  <text x="950" y="232.978799602386" class="tick">現行 $0.534</text>
+  <polyline points="704,309.14 824,285.87 944,263.69" class="series counter"/>
+  <circle cx="704" cy="309.14" r="3.5" class="point"/>
+  <circle cx="824" cy="285.87" r="3.5" class="point"/>
+  <circle cx="944" cy="263.69" r="3.5" class="point"/>
+  <text x="950" y="267.691265282467" class="tick">反事實 $0.354</text>
   <text x="540" y="424" text-anchor="middle" class="label">重複輪次；Y 軸為累積 API 等價成本（USD），三圖共用尺度</text>
 </svg>

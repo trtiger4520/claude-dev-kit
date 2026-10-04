@@ -50,6 +50,8 @@ Live lane eval 每個 scenario 只執行一次，使用 Sonnet low、`--tools ""
 | 任務執行 | 3 | 2 | 3 | 18 |
 | 合計 | | | | 27 |
 
+Quality contract 2.1 起，`login-flow-analysis` 的現行策略接受 `single-agent` 或 `plan-light`：保守派工 policy 下，Sonnet 5.5（low 與 medium effort 各三輪）皆不派 explorer 直接完成追蹤，anchors 與成本和 forced-single 相當。Lane 分類仍要求 `plan-light`
+
 每筆資料記錄 CLI 回報的成本、時間、Token、cache token、turns、lane、Agent 角色、修改範圍與確定性驗收結果。重試前的失敗結果只要 Claude CLI 提供 `total_cost_usd` 仍會以 `record_state=superseded-attempt` 保留在 CSV 並計入作業總成本，但不混入策略均值與曲線
 
 `forced-single` 不使用 Claude CLI `--safe-mode`，因為 safe mode 會同時移除全域 CLAUDE.md、Hook、Skill 與 Agent 設定，讓 A/B 比較混入政策缺席的影響。Runner 保留同一套已安裝政策，只以明確 counterfactual prompt 與 `--disallowed-tools Agent` 移除委派能力

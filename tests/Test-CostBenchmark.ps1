@@ -97,6 +97,18 @@ try {
     if ($incompleteHeavyOutcome.quality_pass -or 'heavy-single-writer' -notin $failedHeavyChecks -or 'heavy-verifier' -notin $failedHeavyChecks) {
         throw 'Forced-heavy outcome must reject a planner-only workflow'
     }
+    $loginTask = $definition.tasks | Where-Object id -EQ 'login-flow-analysis' | Select-Object -First 1
+    $acceptedLanes = foreach ($lane in @('single-agent', 'plan-light', 'orchestrate-heavy')) { (New-CostBenchmarkLaneCheck -Task $loginTask -ObservedLane $lane).passed }
+    if (($acceptedLanes -join ',') -ne 'True,True,False' -or (New-CostBenchmarkLaneCheck -Task $dtoTask -ObservedLane 'plan-light').passed) {
+        throw 'Lane acceptance must allow single-agent only for login-flow-analysis'
+    }
+    $legacyLoginRecord = [pscustomobject]@{
+        kind = 'execution'; strategy = 'current-policy'; observed_lane = 'single-agent'; delegated_roles = ''; approval_turns = 0; status = 'quality-fail'
+        checks = @([pscustomobject]@{ id = 'scope'; passed = $true; evidence = '' }, [pscustomobject]@{ id = 'expected-lane'; passed = $false; evidence = 'single-agent' })
+    }
+    if ((Update-CostBenchmarkRecordQualityContract -Record $legacyLoginRecord -Task $loginTask).status -ne 'pass') {
+        throw 'Quality contract migration must re-grade the stored expected-lane check'
+    }
 
     $benchmarkId = Split-Path -Leaf $runRoot
     $recordsRoot = Join-Path $runRoot 'records'

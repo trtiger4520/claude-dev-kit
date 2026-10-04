@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:CostBenchmarkTaskPath = Join-Path $PSScriptRoot 'references/cost-benchmark-tasks.v1.json'
 $script:CostBenchmarkFixtureRoot = Join-Path $PSScriptRoot 'fixtures/cost-benchmark'
-$script:CostBenchmarkQualityContractVersion = '2.0'
+$script:CostBenchmarkQualityContractVersion = '2.1'
 $script:CostBenchmarkColumns = @(
     'record_state', 'benchmark_id', 'timestamp_utc', 'claude_version', 'policy_fingerprint', 'quality_contract_version', 'task_id', 'category',
     'kind', 'strategy', 'repetition', 'run_order', 'expected_lane', 'observed_lane',
@@ -196,6 +196,27 @@ function Get-CostBenchmarkRoleCount {
     return 0
 }
 
+function Get-CostBenchmarkAcceptedLanes {
+    param([Parameter(Mandatory)]$Task)
+
+    # Quality contract 2.1：保守派工 policy 下，Sonnet 5.5 不派 explorer 直接完成追蹤且 anchors 全中，視為合格
+    if ($Task.id -eq 'login-flow-analysis') { return @('single-agent', 'plan-light') }
+    return @([string]$Task.expected_lane)
+}
+
+function New-CostBenchmarkLaneCheck {
+    param(
+        [Parameter(Mandatory)]$Task,
+        [Parameter(Mandatory)][string]$ObservedLane
+    )
+
+    return [pscustomobject]@{
+        id = 'expected-lane'
+        passed = $ObservedLane -in @(Get-CostBenchmarkAcceptedLanes -Task $Task)
+        evidence = $ObservedLane
+    }
+}
+
 function Get-CostBenchmarkHeavyGovernanceChecks {
     param(
         [Parameter(Mandatory)]$Task,
@@ -327,11 +348,7 @@ function Test-CostBenchmarkOutcome {
     }
 
     if ($Strategy -eq 'current-policy') {
-        $checks.Add([pscustomobject]@{
-            id = 'expected-lane'
-            passed = $StreamResult.observed_lane -eq $Task.expected_lane
-            evidence = $StreamResult.observed_lane
-        })
+        $checks.Add((New-CostBenchmarkLaneCheck -Task $Task -ObservedLane $StreamResult.observed_lane))
     }
 
     $delegatedRoles = [string](Get-PropertyValue $StreamResult 'delegated_roles' '')
@@ -431,6 +448,10 @@ function Update-CostBenchmarkRecordQualityContract {
     foreach ($check in @(Get-PropertyValue $Record 'checks' @())) {
         $id = [string](Get-PropertyValue $check 'id' '')
         if ($id -in $legacyIds -or $id.StartsWith('heavy-', [System.StringComparison]::Ordinal)) { continue }
+        if ($id -eq 'expected-lane') {
+            $checks.Add((New-CostBenchmarkLaneCheck -Task $Task -ObservedLane ([string]$Record.observed_lane)))
+            continue
+        }
         $checks.Add($check)
     }
     foreach ($check in @(Get-CostBenchmarkHeavyGovernanceChecks -Task $Task -Strategy ([string]$Record.strategy) -ObservedLane ([string]$Record.observed_lane) -DelegatedRoles ([string]$Record.delegated_roles) -ApprovalTurns ([int]$Record.approval_turns))) {

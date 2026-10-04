@@ -38,7 +38,7 @@ function Update-StoredQualityContract {
 
     $targetVersion = Get-CostBenchmarkQualityContractVersion
     $manifestVersion = [string](Get-PropertyValue $Manifest 'quality_contract_version' '')
-    if (-not [string]::IsNullOrWhiteSpace($manifestVersion) -and $manifestVersion -ne $targetVersion) {
+    if ($manifestVersion -notin @('', '2.0', $targetVersion)) {
         throw "Unsupported benchmark quality contract version: $manifestVersion"
     }
 
