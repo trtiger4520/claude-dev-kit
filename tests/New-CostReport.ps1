@@ -167,7 +167,11 @@ if (-not $AllowIncomplete -and $records.Count -ne $expectedRecordCount) {
 if ($records.Count -eq 0) { throw 'Benchmark contains no records' }
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path (Get-RepositoryRoot) 'reports/cost-benchmark'
+    $reportLabel = [string](Get-PropertyValue $manifest 'report_label' '')
+    if ($reportLabel -notmatch '^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$') {
+        throw "Benchmark manifest has no valid report_label; pass -OutputDirectory reports/cost-benchmark/<label>"
+    }
+    $OutputDirectory = Join-Path (Get-RepositoryRoot) "reports/cost-benchmark/$reportLabel"
 }
 $resolvedOutput = [System.IO.Path]::GetFullPath($OutputDirectory)
 $repositoryRoot = Get-RepositoryRoot
@@ -202,6 +206,7 @@ $markdown = [System.Text.StringBuilder]::new()
 [void]$markdown.AppendLine()
 [void]$markdown.AppendLine(('- Benchmark ID：`{0}`' -f $BenchmarkId))
 [void]$markdown.AppendLine(('- Claude CLI：`{0}`' -f $manifest.claude_version))
+[void]$markdown.AppendLine(('- 主對話 model／effort：`{0}`／`{1}`' -f (Get-PropertyValue $manifest 'model' 'sonnet'), (Get-PropertyValue $manifest 'effort' 'low')))
 [void]$markdown.AppendLine(('- Policy fingerprint：`{0}`' -f $manifest.policy_fingerprint))
 [void]$markdown.AppendLine(('- Installed policy fingerprint：`{0}`' -f (Get-PropertyValue $manifest 'installed_policy_fingerprint' 'unknown')))
 [void]$markdown.AppendLine(('- Benchmark input fingerprint：`{0}`' -f (Get-PropertyValue $manifest 'benchmark_input_fingerprint' 'unknown')))

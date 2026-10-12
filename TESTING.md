@@ -58,20 +58,21 @@ Quality contract 2.1 起，`login-flow-analysis` 的現行策略接受 `single-a
 
 預算流程刻意拆成兩階段：
 
-1. 使用 `-Phase Calibrate -ApprovedBudgetUsd <校準預算>` 明確核准第一輪九筆資料
+1. 使用 `-Phase Calibrate -ReportLabel <label> -ApprovedBudgetUsd <校準預算>` 明確核准第一輪九筆資料，報告輸出到 `reports/cost-benchmark/<label>/`
 2. runner 依校準資料估算剩餘兩輪，再乘上 25% 緩衝
 3. 人員確認投影後，使用同一個 Benchmark ID 與新的 `-ApprovedBudgetUsd` 執行 `-Phase Complete`
 
 完整命令：
 
 ```powershell
-pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ApprovedBudgetUsd <校準預算>
+pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel <label> -ApprovedBudgetUsd <校準預算>
 pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Complete -BenchmarkId <benchmark-id> -ApprovedBudgetUsd <核准的剩餘預算>
 ```
 
 安全與可比較性條件：
 
 - 兩階段之間 Claude CLI 版本與 policy fingerprint 必須相同
+- 主對話 `-Model`／`-Effort` 與 `-ReportLabel` 在校準時寫入 manifest；完整階段若傳入不同值會拒絕執行
 - 兩階段之間隔離 profile 的實際安裝 fingerprint 必須相同，包含 Agent model／effort 與 managed settings
 - 兩階段之間任務定義與合成 fixture fingerprint 必須相同
 - 每筆執行使用無外部套件相依的合成 fixture，並在變更前建立本地 Git baseline

@@ -382,7 +382,9 @@ function ConvertTo-CostBenchmarkRecord {
         [Parameter(Mandatory)][string]$PolicyFingerprint,
         [Parameter(Mandatory)][decimal]$BudgetLimitUsd,
         [Parameter(Mandatory)][double]$WallSeconds,
-        [int]$ApprovalTurns = 0
+        [int]$ApprovalTurns = 0,
+        [Parameter(Mandatory)][string]$Model,
+        [Parameter(Mandatory)][string]$Effort
     )
 
     $result = $StreamResult.result
@@ -406,8 +408,8 @@ function ConvertTo-CostBenchmarkRecord {
         delegated_roles = $StreamResult.delegated_roles
         subagent_count = $StreamResult.subagent_count
         approval_turns = $ApprovalTurns
-        model = 'sonnet'
-        effort = 'low'
+        model = $Model
+        effort = $Effort
         total_cost_usd = [decimal](Get-PropertyValue $result 'total_cost_usd' 0)
         duration_ms = [long](Get-PropertyValue $result 'duration_ms' 0)
         duration_api_ms = [long](Get-PropertyValue $result 'duration_api_ms' 0)

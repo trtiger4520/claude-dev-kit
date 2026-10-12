@@ -243,8 +243,13 @@ try {
     }
     if (Test-Path -LiteralPath $outsideOutput) { throw 'Rejected report path was unexpectedly created' }
 
+    $unlabeledResult = & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'New-CostReport.ps1') -BenchmarkId $benchmarkId 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0 -or -not $unlabeledResult.Contains('no valid report_label')) {
+        throw 'Cost report generator did not reject a manifest without report_label when no output directory was given'
+    }
+
     $runnerContent = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'Invoke-CostBenchmark.ps1')
-    foreach ($required in @('ApprovedBudgetUsd', 'BENCHMARK_APPROVAL_REQUIRED', '--no-session-persistence', "'--disallowed-tools', 'Agent'", 'projected_remaining_with_25pct_buffer_usd', 'Get-InstalledPolicyFingerprint', 'benchmark_input_fingerprint', 'quality_contract_version', 'Update-StoredQualityContract', 'RECOVER:', 'Get-RecordedPhaseSpend', 'phase_observed_cost_usd')) {
+    foreach ($required in @('ApprovedBudgetUsd', 'BENCHMARK_APPROVAL_REQUIRED', '--no-session-persistence', "'--disallowed-tools', 'Agent'", 'projected_remaining_with_25pct_buffer_usd', 'Get-InstalledPolicyFingerprint', 'benchmark_input_fingerprint', 'quality_contract_version', 'Update-StoredQualityContract', 'RECOVER:', 'Get-RecordedPhaseSpend', 'phase_observed_cost_usd', "'--model', `$Model", "'--effort', `$Effort", 'report_label')) {
         if (-not $runnerContent.Contains($required)) { throw "Cost benchmark runner is missing safety behavior: $required" }
     }
     if ($runnerContent.Contains("'--safe-mode'")) {
