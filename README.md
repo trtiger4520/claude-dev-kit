@@ -178,6 +178,8 @@ $env:CDK_MODEL_EXPLORER = 'haiku'
 pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel sonnet-5-5_explorer-haiku-5-5 -ApprovedBudgetUsd <校準預算>
 ```
 
+現行策略在這組任務下幾乎不派 explorer，要比較 explorer 的 model 時改用 `-TaskSet explorer-probe`：只跑 `login-flow-analysis`，比較強制派 1 個 explorer 的 `forced-explorer` 與 `forced-single`，共 9 筆
+
 校準完成後，runner 會顯示 Benchmark ID、已觀察成本，以及含 25% 緩衝的剩餘成本投影。確認投影後，再以同一個 Benchmark ID 核准完整階段：
 
 ```powershell

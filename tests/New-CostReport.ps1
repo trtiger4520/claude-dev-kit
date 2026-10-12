@@ -139,8 +139,8 @@ function New-CostCurveSvg {
 }
 
 $runRoot = Get-CostBenchmarkRunRoot -BenchmarkId $BenchmarkId -RequireExisting
-$definition = Get-CostBenchmarkDefinition
 $manifest = Get-Content -Raw -LiteralPath (Join-Path $runRoot 'manifest.json') | ConvertFrom-Json -Depth 20
+$definition = Get-CostBenchmarkDefinition -TaskSet (Get-PropertyValue $manifest 'task_set' 'v1')
 $records = @(Get-ChildItem -LiteralPath (Join-Path $runRoot 'records') -Filter *.json | ForEach-Object {
     Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json -Depth 50
 } | Sort-Object run_order)
@@ -207,6 +207,7 @@ $markdown = [System.Text.StringBuilder]::new()
 [void]$markdown.AppendLine(('- Benchmark ID：`{0}`' -f $BenchmarkId))
 [void]$markdown.AppendLine(('- Claude CLI：`{0}`' -f $manifest.claude_version))
 [void]$markdown.AppendLine(('- 主對話 model／effort：`{0}`／`{1}`' -f (Get-PropertyValue $manifest 'model' 'sonnet'), (Get-PropertyValue $manifest 'effort' 'low')))
+[void]$markdown.AppendLine(('- 任務組：`{0}`' -f (Get-PropertyValue $manifest 'task_set' 'v1')))
 [void]$markdown.AppendLine(('- Policy fingerprint：`{0}`' -f $manifest.policy_fingerprint))
 [void]$markdown.AppendLine(('- Installed policy fingerprint：`{0}`' -f (Get-PropertyValue $manifest 'installed_policy_fingerprint' 'unknown')))
 [void]$markdown.AppendLine(('- Benchmark input fingerprint：`{0}`' -f (Get-PropertyValue $manifest 'benchmark_input_fingerprint' 'unknown')))

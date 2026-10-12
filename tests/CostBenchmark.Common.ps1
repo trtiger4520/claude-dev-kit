@@ -3,7 +3,6 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Test-Sandbox.ps1')
 
-$script:CostBenchmarkTaskPath = Join-Path $PSScriptRoot 'references/cost-benchmark-tasks.v1.json'
 $script:CostBenchmarkFixtureRoot = Join-Path $PSScriptRoot 'fixtures/cost-benchmark'
 $script:CostBenchmarkQualityContractVersion = '2.1'
 $script:CostBenchmarkColumns = @(
@@ -16,8 +15,14 @@ $script:CostBenchmarkColumns = @(
     'error_type', 'budget_limit_usd', 'model_usage_json'
 )
 
+function Get-CostBenchmarkTaskPath {
+    param([ValidateSet('v1', 'explorer-probe')][string]$TaskSet = 'v1')
+    return Join-Path $PSScriptRoot "references/cost-benchmark-tasks.$TaskSet.json"
+}
+
 function Get-CostBenchmarkDefinition {
-    return Get-Content -Raw -Encoding utf8 -LiteralPath $script:CostBenchmarkTaskPath | ConvertFrom-Json -Depth 30
+    param([string]$TaskSet = 'v1')
+    return Get-Content -Raw -Encoding utf8 -LiteralPath (Get-CostBenchmarkTaskPath -TaskSet $TaskSet) | ConvertFrom-Json -Depth 30
 }
 
 function Get-CostBenchmarkFixtureRoot { return [System.IO.Path]::GetFullPath($script:CostBenchmarkFixtureRoot) }
@@ -56,8 +61,9 @@ function Get-PolicyFingerprint {
 }
 
 function Get-BenchmarkInputFingerprint {
+    param([string]$TaskSet = 'v1')
     $repositoryRoot = Get-RepositoryRoot
-    $paths = @($script:CostBenchmarkTaskPath) + @(Get-ChildItem -LiteralPath $script:CostBenchmarkFixtureRoot -Recurse -File | Select-Object -ExpandProperty FullName)
+    $paths = @(Get-CostBenchmarkTaskPath -TaskSet $TaskSet) + @(Get-ChildItem -LiteralPath $script:CostBenchmarkFixtureRoot -Recurse -File | Select-Object -ExpandProperty FullName)
     $builder = [System.Text.StringBuilder]::new()
     foreach ($path in ($paths | Sort-Object)) {
         $relativePath = [System.IO.Path]::GetRelativePath($repositoryRoot, $path).Replace('\', '/')
@@ -352,6 +358,9 @@ function Test-CostBenchmarkOutcome {
     }
 
     $delegatedRoles = [string](Get-PropertyValue $StreamResult 'delegated_roles' '')
+    if ($Strategy -eq 'forced-explorer') {
+        $checks.Add([pscustomobject]@{ id = 'forced-explorer'; passed = $delegatedRoles -eq 'explorer:1'; evidence = $delegatedRoles })
+    }
     foreach ($governanceCheck in @(Get-CostBenchmarkHeavyGovernanceChecks -Task $Task -Strategy $Strategy -ObservedLane $StreamResult.observed_lane -DelegatedRoles $delegatedRoles -ApprovalTurns $ApprovalTurns)) {
         $checks.Add($governanceCheck)
     }

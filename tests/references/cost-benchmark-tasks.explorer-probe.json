@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "target_repetitions": 3,
+  "tasks": [
+    {
+      "id": "login-flow-analysis",
+      "category": "read-heavy-exploration",
+      "expected_lane": "plan-light",
+      "current_strategy": "forced-explorer",
+      "counterfactual_strategy": "forced-single",
+      "task_prompt": "Limited main-agent exploration did not converge. Independently trace the complete login flow from web/LoginView.vue through the API, application, domain, mapping, repository, and audit code. Do not modify files. Return a concise ordered report containing every relevant repository-relative path and stop after the end-to-end chain is proven",
+      "allowed_changed_files": [],
+      "verifier_mode": "none",
+      "anchors": [
+        "web/LoginView.vue",
+        "web/authClient.ts",
+        "src/BenchmarkApp/Web/LoginEndpoint.cs",
+        "src/BenchmarkApp/Application/LoginCommand.cs",
+        "src/BenchmarkApp/Application/ValidationBehavior.cs",
+        "src/BenchmarkApp/Application/LoginHandler.cs",
+        "src/BenchmarkApp/Infrastructure/UserRepository.cs",
+        "src/BenchmarkApp/Domain/UserAuthenticator.cs",
+        "src/BenchmarkApp/Infrastructure/AuditLog.cs",
+        "src/BenchmarkApp/Mapping/UserMapper.cs"
+      ]
+    }
+  ]
+}
