@@ -174,7 +174,7 @@ pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportL
 `-ReportLabel` 決定報告輸出目錄 `reports/cost-benchmark/<label>/`，新 benchmark 必填。主對話 model 與 effort 由 `-Model`（預設 `sonnet`）與 `-Effort`（預設 `low`）指定，校準時寫入 manifest，完整階段沿用。Subagent 的 model 來自 sandbox 安裝的 agent 設定，要測其他組合時在執行前設定 `CDK_MODEL_<AGENT>`／`CDK_EFFORT_<AGENT>` 環境變數，例如：
 
 ```powershell
-$env:CDK_MODEL_EXPLORER = 'haiku'
+$env:CDK_MODEL_EXPLORER = 'claude-haiku-5-5'
 pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel sonnet-5-5_explorer-haiku-5-5 -ApprovedBudgetUsd <校準預算>
 ```
 
