@@ -78,7 +78,7 @@ function Resolve-Model([string]$agentName, [string]$currentModel) {
     Write-Host "  1) inherit（跟隨主對話模型）"
     Write-Host "  2) sonnet"
     Write-Host "  3) opus"
-    Write-Host "  4) haiku"
+    Write-Host "  4) haiku（Claude Code 2.1.293 起為 Haiku 5.5，更早版本為 Haiku 4.5）"
     Write-Host "  5) fable"
     $choice = Read-Host "輸入數字或直接輸入完整 model ID，Enter 保留目前設定"
     if ([string]::IsNullOrWhiteSpace($choice)) { return $currentModel }

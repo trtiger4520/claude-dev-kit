@@ -61,7 +61,7 @@ bash install.sh --destination /path/to/claude-config
 
 - 複製 agents/、commands/、skills/、hooks/ 到 `~/.claude/` 對應目錄
 - 安裝 agents 時，逐一詢問每個 agent 要用的 model 與 effort（僅互動環境會問；直接 Enter 保留目前設定）：
-  - model：`inherit`（跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID
+  - model：`inherit`（跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID。別名由 Claude Code 解析成當下的最新版本：`haiku` 從 Claude Code 2.1.293 起才是 Haiku 5.5，更早版本會用到 Haiku 4.5，使用前先以 `claude --version` 確認
   - effort：`inherit`（不寫入 effort 欄位）/`low`/`medium`/`high`/`xhigh`/`max`
   - 各 agent 的建議預設值（全新安裝時直接 Enter 即採用；更新時保留既有設定，不會被預設值覆蓋）：
 
@@ -174,7 +174,7 @@ pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportL
 `-ReportLabel` 決定報告輸出目錄 `reports/cost-benchmark/<label>/`，新 benchmark 必填。主對話 model 與 effort 由 `-Model`（預設 `sonnet`）與 `-Effort`（預設 `low`）指定，校準時寫入 manifest，完整階段沿用。Subagent 的 model 來自 sandbox 安裝的 agent 設定，要測其他組合時在執行前設定 `CDK_MODEL_<AGENT>`／`CDK_EFFORT_<AGENT>` 環境變數，例如：
 
 ```powershell
-$env:CDK_MODEL_EXPLORER = 'claude-haiku-5-5'
+$env:CDK_MODEL_EXPLORER = 'haiku'
 pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel sonnet-5-5_explorer-haiku-5-5 -ApprovedBudgetUsd <校準預算>
 ```
 
