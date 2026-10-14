@@ -14,7 +14,19 @@ param(
     [decimal]$ClassificationBudgetUsd = 0.50,
     [decimal]$StandardRunBudgetUsd = 0.75,
     [decimal]$HeavyRunBudgetUsd = 2.00,
-    [switch]$RetryFailed
+    [switch]$RetryFailed,
+
+    [ValidatePattern('^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$')]
+    [string]$ReportLabel,
+
+    [ValidatePattern('^[a-z0-9][a-z0-9.\[\]-]*$')]
+    [string]$Model = 'sonnet',
+
+    [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')]
+    [string]$Effort = 'low',
+
+    [ValidateSet('v1', 'explorer-probe')]
+    [string]$TaskSet = 'v1'
 )
 
 Set-StrictMode -Version Latest
@@ -132,8 +144,8 @@ function Invoke-ClaudeStreamProcess {
         '--verbose',
         '--include-hook-events',
         '--no-session-persistence',
-        '--model', 'sonnet',
-        '--effort', 'low',
+        '--model', $Model,
+        '--effort', $Effort,
         '--permission-mode', 'acceptEdits',
         '--allowed-tools', $allowedTools,
         '--max-turns', '30',
@@ -322,8 +334,8 @@ Task: $($Cell.task.task_prompt)
         '--output-format', 'json',
         '--json-schema', $SchemaJson,
         '--max-turns', '2',
-        '--model', 'sonnet',
-        '--effort', 'low',
+        '--model', $Model,
+        '--effort', $Effort,
         '--max-budget-usd', $BudgetUsd.ToString([System.Globalization.CultureInfo]::InvariantCulture),
         '--setting-sources', 'user'
     )
@@ -335,15 +347,38 @@ Task: $($Cell.task.task_prompt)
 }
 
 Assert-SandboxIgnored
-$definition = Get-CostBenchmarkDefinition
 $repositoryRoot = Get-RepositoryRoot
 $policyFingerprint = Get-PolicyFingerprint -RepositoryRoot $repositoryRoot
-$benchmarkInputFingerprint = Get-BenchmarkInputFingerprint
 $claude = Get-Command claude -ErrorAction Stop
 $claudeVersion = (& $claude.Source --version | Select-Object -First 1).Trim()
 $profileRoot = Assert-TestPath -Path (Get-ClaudeProfileRoot) -AllowProfile
 
-if ($Phase -eq 'Calibrate' -and -not $BenchmarkId) {
+$isNewBenchmark = $Phase -eq 'Calibrate' -and -not $BenchmarkId
+if (-not $isNewBenchmark) {
+    if (-not $BenchmarkId) { throw '-BenchmarkId is required when continuing an existing benchmark' }
+    $runRoot = Get-CostBenchmarkRunRoot -BenchmarkId $BenchmarkId -RequireExisting
+    $manifest = Get-Content -Raw -LiteralPath (Join-Path $runRoot 'manifest.json') | ConvertFrom-Json -Depth 20
+    # 早期 manifest 沒有 model/effort/task_set 欄位，當時固定為 sonnet/low/v1
+    $calibratedSettings = @{
+        Model = [string](Get-PropertyValue $manifest 'model' 'sonnet')
+        Effort = [string](Get-PropertyValue $manifest 'effort' 'low')
+        TaskSet = [string](Get-PropertyValue $manifest 'task_set' 'v1')
+        ReportLabel = [string](Get-PropertyValue $manifest 'report_label' '')
+    }
+    foreach ($name in $calibratedSettings.Keys) {
+        if ($PSBoundParameters.ContainsKey($name) -and $PSBoundParameters[$name] -ne $calibratedSettings[$name]) {
+            throw "-$name differs from the calibrated value '$($calibratedSettings[$name])'; start a new benchmark to keep comparisons valid"
+        }
+    }
+    $Model = $calibratedSettings.Model
+    $Effort = $calibratedSettings.Effort
+    $TaskSet = $calibratedSettings.TaskSet
+}
+$definition = Get-CostBenchmarkDefinition -TaskSet $TaskSet
+$benchmarkInputFingerprint = Get-BenchmarkInputFingerprint -TaskSet $TaskSet
+
+if ($isNewBenchmark) {
+    if (-not $ReportLabel) { throw '-ReportLabel is required for a new benchmark, e.g. sonnet-5-5 or sonnet-5-5_explorer-haiku-5-5' }
     $runRoot = New-SandboxRun
     $BenchmarkId = Split-Path -Leaf $runRoot
     $manifest = [ordered]@{
@@ -356,6 +391,10 @@ if ($Phase -eq 'Calibrate' -and -not $BenchmarkId) {
         benchmark_input_fingerprint = $benchmarkInputFingerprint
         quality_contract_version = Get-CostBenchmarkQualityContractVersion
         fixture = 'cost-benchmark'
+        report_label = $ReportLabel
+        model = $Model
+        effort = $Effort
+        task_set = $TaskSet
     }
     foreach ($directory in @('raw', 'records', 'attempts', 'projects', 'tmp')) {
         New-Item -ItemType Directory -Force -Path (Assert-TestPath -Path (Join-Path $runRoot $directory)) | Out-Null
@@ -363,9 +402,6 @@ if ($Phase -eq 'Calibrate' -and -not $BenchmarkId) {
     Write-Utf8Json -Value $manifest -Path (Join-Path $runRoot 'manifest.json')
 }
 else {
-    if (-not $BenchmarkId) { throw '-BenchmarkId is required when continuing an existing benchmark' }
-    $runRoot = Get-CostBenchmarkRunRoot -BenchmarkId $BenchmarkId -RequireExisting
-    $manifest = Get-Content -Raw -LiteralPath (Join-Path $runRoot 'manifest.json') | ConvertFrom-Json -Depth 20
     if ($manifest.policy_fingerprint -ne $policyFingerprint) {
         throw 'Policy fingerprint changed after calibration; start a new benchmark to keep comparisons valid'
     }
@@ -380,7 +416,7 @@ $qualityMigrationCount = Update-StoredQualityContract -RunRoot $runRoot -Manifes
 if ($qualityMigrationCount -gt 0) {
     Write-Output "QUALITY CONTRACT: migrated_records=$qualityMigrationCount version=$(Get-CostBenchmarkQualityContractVersion)"
 }
-Write-Output "BENCHMARK: phase=$Phase benchmark_id=$BenchmarkId approved_budget_usd=$ApprovedBudgetUsd"
+Write-Output "BENCHMARK: phase=$Phase benchmark_id=$BenchmarkId task_set=$TaskSet model=$Model effort=$Effort approved_budget_usd=$ApprovedBudgetUsd"
 $budgetManifestField = if ($Phase -eq 'Calibrate') { 'calibration_approved_budget_usd' } else { 'complete_approved_budget_usd' }
 Set-PropertyValue -Object $manifest -Name $budgetManifestField -Value $ApprovedBudgetUsd
 Write-Utf8Json -Value $manifest -Path (Join-Path $runRoot 'manifest.json')
@@ -481,6 +517,9 @@ try {
                 elseif ($cell.strategy -eq 'forced-single') {
                     'This is a sandbox counterfactual benchmark. Complete the task directly in the main agent without delegation. '
                 }
+                elseif ($cell.strategy -eq 'forced-explorer') {
+                    'This is a sandbox counterfactual benchmark. Dispatch exactly one explorer subagent to perform the trace, do not dispatch any other agent, and write the final report from its findings. '
+                }
                 else { '' }
                 $approvalInstruction = if ($requiresApproval) {
                     "`nWhen your workflow reaches the user-approval step before any file write, end that turn with BENCHMARK_APPROVAL_REQUIRED on its own line. Wait for the next user message before implementation."
@@ -491,7 +530,7 @@ try {
                 $outcome = Test-CostBenchmarkOutcome -Task $cell.task -Strategy $cell.strategy -ProjectRoot $projectRoot -StreamResult $streamResult -ApprovalTurns $call.approval_turns
                 $execution = [pscustomobject]@{ stream_result = $streamResult; outcome = $outcome; wall_seconds = $call.wall_seconds; approval_turns = $call.approval_turns }
             }
-            $record = ConvertTo-CostBenchmarkRecord -BenchmarkId $BenchmarkId -Cell $cell -StreamResult $execution.stream_result -Outcome $execution.outcome -ClaudeVersion $claudeVersion -PolicyFingerprint $policyFingerprint -BudgetLimitUsd $runBudget -WallSeconds $execution.wall_seconds -ApprovalTurns $execution.approval_turns
+            $record = ConvertTo-CostBenchmarkRecord -BenchmarkId $BenchmarkId -Cell $cell -StreamResult $execution.stream_result -Outcome $execution.outcome -ClaudeVersion $claudeVersion -PolicyFingerprint $policyFingerprint -BudgetLimitUsd $runBudget -WallSeconds $execution.wall_seconds -ApprovalTurns $execution.approval_turns -Model $Model -Effort $Effort
             $record = Update-CostBenchmarkRecordQualityContract -Record $record -Task $cell.task
             Write-Utf8Json -Value $record -Path $recordPath
             $phaseSpend += [decimal]$record.total_cost_usd

@@ -41,6 +41,15 @@ foreach ($task in $definition.tasks) {
     }
 }
 
+$probeDefinition = Get-CostBenchmarkDefinition -TaskSet 'explorer-probe'
+$probeSchedule = @(Get-CostBenchmarkSchedule -Definition $probeDefinition -Phase Calibrate) + @(Get-CostBenchmarkSchedule -Definition $probeDefinition -Phase Complete)
+if ($probeSchedule.Count -ne 9 -or @($probeSchedule | Where-Object strategy -EQ 'forced-explorer').Count -ne 3) {
+    throw "Explorer probe schedule must contain 9 cells with 3 forced-explorer runs: $($probeSchedule.Count)"
+}
+if ((Get-BenchmarkInputFingerprint -TaskSet 'explorer-probe') -eq $benchmarkInputFingerprint) {
+    throw 'Explorer probe and v1 task sets must have different input fingerprints'
+}
+
 $sampleStream = @(
     '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Agent","input":{"subagent_type":"orchestration_explorer"}},{"type":"text","text":"web/LoginView.vue"}]}}',
     '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":0.125,"duration_ms":1200,"duration_api_ms":900,"num_turns":2,"result":"src/BenchmarkApp/Web/LoginEndpoint.cs","usage":{"input_tokens":10,"output_tokens":20,"cache_creation_input_tokens":30,"cache_read_input_tokens":40},"modelUsage":{"claude-sonnet-test":{"costUSD":0.125}}}'
@@ -108,6 +117,15 @@ try {
     }
     if ((Update-CostBenchmarkRecordQualityContract -Record $legacyLoginRecord -Task $loginTask).status -ne 'pass') {
         throw 'Quality contract migration must re-grade the stored expected-lane check'
+    }
+    $forcedExplorerPassed = foreach ($roles in @('explorer:1', '', 'explorer:2', 'explorer:1;implementer:1')) {
+        $explorerOutcome = Test-CostBenchmarkOutcome -Task $loginTask -Strategy 'forced-explorer' -ProjectRoot $projectRoot -StreamResult ([pscustomobject]@{
+            assistant_text = 'done'; roles = @(); delegated_roles = $roles; observed_lane = 'plan-light'
+        })
+        (@($explorerOutcome.checks | Where-Object id -EQ 'forced-explorer'))[0].passed
+    }
+    if (($forcedExplorerPassed -join ',') -ne 'True,False,False,False') {
+        throw "Forced-explorer check must accept exactly one explorer and nothing else: $($forcedExplorerPassed -join ',')"
     }
 
     $benchmarkId = Split-Path -Leaf $runRoot
@@ -243,8 +261,13 @@ try {
     }
     if (Test-Path -LiteralPath $outsideOutput) { throw 'Rejected report path was unexpectedly created' }
 
+    $unlabeledResult = & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'New-CostReport.ps1') -BenchmarkId $benchmarkId 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0 -or -not $unlabeledResult.Contains('no valid report_label')) {
+        throw 'Cost report generator did not reject a manifest without report_label when no output directory was given'
+    }
+
     $runnerContent = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'Invoke-CostBenchmark.ps1')
-    foreach ($required in @('ApprovedBudgetUsd', 'BENCHMARK_APPROVAL_REQUIRED', '--no-session-persistence', "'--disallowed-tools', 'Agent'", 'projected_remaining_with_25pct_buffer_usd', 'Get-InstalledPolicyFingerprint', 'benchmark_input_fingerprint', 'quality_contract_version', 'Update-StoredQualityContract', 'RECOVER:', 'Get-RecordedPhaseSpend', 'phase_observed_cost_usd')) {
+    foreach ($required in @('ApprovedBudgetUsd', 'BENCHMARK_APPROVAL_REQUIRED', '--no-session-persistence', "'--disallowed-tools', 'Agent'", 'projected_remaining_with_25pct_buffer_usd', 'Get-InstalledPolicyFingerprint', 'benchmark_input_fingerprint', 'quality_contract_version', 'Update-StoredQualityContract', 'RECOVER:', 'Get-RecordedPhaseSpend', 'phase_observed_cost_usd', "'--model', `$Model", "'--effort', `$Effort", 'report_label')) {
         if (-not $runnerContent.Contains($required)) { throw "Cost benchmark runner is missing safety behavior: $required" }
     }
     if ($runnerContent.Contains("'--safe-mode'")) {

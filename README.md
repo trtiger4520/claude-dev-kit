@@ -61,7 +61,7 @@ bash install.sh --destination /path/to/claude-config
 
 - 複製 agents/、commands/、skills/、hooks/ 到 `~/.claude/` 對應目錄
 - 安裝 agents 時，逐一詢問每個 agent 要用的 model 與 effort（僅互動環境會問；直接 Enter 保留目前設定）：
-  - model：`inherit`（跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID
+  - model：`inherit`（跟隨主對話模型）/`sonnet`/`opus`/`haiku`/`fable`，也可直接輸入完整 model ID。別名由 Claude Code 解析成當下的最新版本：`haiku` 從 Claude Code 2.1.293 起才是 Haiku 5.5，更早版本會用到 Haiku 4.5，使用前先以 `claude --version` 確認
   - effort：`inherit`（不寫入 effort 欄位）/`low`/`medium`/`high`/`xhigh`/`max`
   - 各 agent 的建議預設值（全新安裝時直接 Enter 即採用；更新時保留既有設定，不會被預設值覆蓋）：
 
@@ -72,7 +72,7 @@ bash install.sh --destination /path/to/claude-config
     | implementer | sonnet | medium |
     | explorer | sonnet | low |
 
-    分配邏輯：品質關鍵角色（planner 規劃、verifier 驗收把關）跟隨主對話模型，verifier 加高 effort；implementer 執行已定義明確的子任務，用 sonnet+medium 平衡成本；explorer 需要正確追蹤呼叫鏈（探索錯誤會污染下游），用 sonnet+low 兼顧品質與 fan-out 成本（註：haiku 不支援 effort 參數）。預設值定義在 `src/agents/*.md` 的 frontmatter，改那裡即可調整預設
+    分配邏輯：品質關鍵角色（planner 規劃、verifier 驗收把關）跟隨主對話模型，verifier 加高 effort；implementer 執行已定義明確的子任務，用 sonnet+medium 平衡成本；explorer 需要正確追蹤呼叫鏈（探索錯誤會污染下游），用 sonnet+low 兼顧品質與 fan-out 成本（註：Haiku 5.5 起支援 effort 參數，Haiku 4.5 以前不支援）。預設值定義在 `src/agents/*.md` 的 frontmatter，改那裡即可調整預設
   - 也可用環境變數在安裝前直接指定、跳過該欄位的提示：`CDK_MODEL_EXPLORER`、`CDK_MODEL_IMPLEMENTER`、`CDK_MODEL_PLANNER`、`CDK_MODEL_VERIFIER`（值同上）；`CDK_EFFORT_EXPLORER`、`CDK_EFFORT_IMPLEMENTER`、`CDK_EFFORT_PLANNER`、`CDK_EFFORT_VERIFIER`（值為 `inherit`/空字串 或 low/medium/high/xhigh/max）
   - 非互動環境（stdin 非 tty，例如 CI、curl pipe）且未設定對應環境變數時，直接沿用該 agent 目前已安裝的設定，不會被重置回預設值
 - CLAUDE.md「整份取代」`~/.claude/CLAUDE.md`（不是附加）
@@ -168,8 +168,17 @@ pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All -ApprovedTotalBu
 Live benchmark 分成兩個需要明確預算的階段。先執行九筆校準量測：
 
 ```powershell
-pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ApprovedBudgetUsd <校準預算>
+pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel <label> -ApprovedBudgetUsd <校準預算>
 ```
+
+`-ReportLabel` 決定報告輸出目錄 `reports/cost-benchmark/<label>/`，新 benchmark 必填。主對話 model 與 effort 由 `-Model`（預設 `sonnet`）與 `-Effort`（預設 `low`）指定，校準時寫入 manifest，完整階段沿用。Subagent 的 model 來自 sandbox 安裝的 agent 設定，要測其他組合時在執行前設定 `CDK_MODEL_<AGENT>`／`CDK_EFFORT_<AGENT>` 環境變數，例如：
+
+```powershell
+$env:CDK_MODEL_EXPLORER = 'haiku'
+pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Calibrate -ReportLabel sonnet-5-5_explorer-haiku-5-5 -ApprovedBudgetUsd <校準預算>
+```
+
+現行策略在這組任務下幾乎不派 explorer，要比較 explorer 的 model 時改用 `-TaskSet explorer-probe`：只跑 `login-flow-analysis`，比較強制派 1 個 explorer 的 `forced-explorer` 與 `forced-single`，共 9 筆
 
 校準完成後，runner 會顯示 Benchmark ID、已觀察成本，以及含 25% 緩衝的剩餘成本投影。確認投影後，再以同一個 Benchmark ID 核准完整階段：
 
@@ -181,9 +190,11 @@ pwsh -NoProfile -File .\tests\Invoke-CostBenchmark.ps1 -Phase Complete -Benchmar
 
 完整 27 筆量測成功後會產出：
 
-- `reports/cost-benchmark/task-cost-report.md`：討論用摘要、策略差異與每輪明細表
-- `reports/cost-benchmark/task-cost-data.csv`：可供 Excel、Power BI 或其他分析工具使用的原始正規化資料
-- `reports/cost-benchmark/task-cost-curves.svg`：三個任務的現行與反事實策略三輪累積成本曲線
+- `reports/cost-benchmark/<label>/task-cost-report.md`：討論用摘要、策略差異與每輪明細表
+- `reports/cost-benchmark/<label>/task-cost-data.csv`：可供 Excel、Power BI 或其他分析工具使用的原始正規化資料
+- `reports/cost-benchmark/<label>/task-cost-curves.svg`：三個任務的現行與反事實策略三輪累積成本曲線
+
+目前的 Sonnet 5.5 基準在 [reports/cost-benchmark/sonnet-5-5/](reports/cost-benchmark/sonnet-5-5/task-cost-report.md)
 
 CSV 以 `record_state` 區分目前採用的 27 筆樣本與重試前保留的 `superseded-attempt`。失敗 attempt 會計入 Benchmark 作業總成本，但不會混入策略均值與曲線
 
