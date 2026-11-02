@@ -51,7 +51,15 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
 - Do not accept an implementer's self-report as independent verification evidence; when a verifier is required it must re-run approved checks itself
 - Use the narrowest verification command during iteration (single test file > full suite); run the full relevant suite once at the end
 - If verification cannot be run, say so explicitly and provide the exact command to run later
-- Bug fixes: when possible write the failing test that reproduces the bug first, then make it pass
+- Bug fixes: when possible write the failing test that reproduces the bug first, then make it pass. Commit it only if it qualifies as a regression test below; otherwise treat it as a probe
+
+## Probes vs committed tests
+
+- A probe checks the code you just wrote: generated SQL/text contains or lacks a keyword, a private method was called, mock call counts, exact log strings, query plan shape. Run it, then delete it before commit
+- Commit a test only when it pins behavior a caller depends on (input → output, query result rows, API contract, user-visible bug) and would still pass after a correct refactor of the internals
+- Write probes in the scratchpad or a throwaway file outside tracked paths; if a probe must live in the test project to run, remove it before commit and confirm with `git status`
+- Evidence survives without the file: in the final report, state what each probe checked, the command run, and its result
+- When a requirement can only be checked by a probe (e.g. performance: no full table scan), say so in the report instead of committing the probe
 
 ## Failure handling
 
