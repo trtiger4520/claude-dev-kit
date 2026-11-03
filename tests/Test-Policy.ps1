@@ -28,7 +28,8 @@ foreach ($required in @(
     'Delegate only when at least two signals are present',
     'Route by actual change risk, not file count, step count, cross-module scope, cross-platform scope, or unfamiliar paths',
     'Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier',
-    'availability alone does not bypass this gate'
+    'availability alone does not bypass this gate',
+    'would still pass after a correct refactor of the internals'
 )) { Assert-Contains -Content $claude -Expected $required -File 'src/CLAUDE.md' }
 foreach ($forbidden in @('3-6 explorers', 'Use proactively', 'Keyword match decides', 'high risk BY DEFINITION')) {
     Assert-NotContains -Content $claude -Forbidden $forbidden -File 'src/CLAUDE.md'
