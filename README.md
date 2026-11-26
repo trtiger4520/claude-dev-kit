@@ -9,7 +9,7 @@
 | CLAUDE.md | 每次都適用的行為規則                                   | 每個對話   | 保留精簡且可直接執行的政策     |
 | agents/   | planner、explorer、implementer、verifier               | 被委派時   | 職責分離、獨立 context         |
 | commands/ | /orchestrate、/verify                                  | 手動觸發   | 強制走完整流程                 |
-| skills/   | repo-discovery、bugfix-protocol、risky-change、source-boundary、lessons、concise-tw | 情境符合時 | 冗長的檢查清單不該常駐 context |
+| skills/   | repo-discovery、bugfix-protocol、risky-change、source-boundary、lessons、concise-tw、project-security-scan | 情境符合時 | 冗長的檢查清單不該常駐 context |
 | hooks/    | risky-change-trigger（UserPromptSubmit 關鍵字候選標記） | 每次送出 prompt | 便宜篩選潛在風險，再依實際變更決定 lane |
 
 skills 的命名刻意避開常見的 plugin skill 名稱（debug、code-review、testing-strategy 等），
@@ -26,6 +26,20 @@ skills 的命名刻意避開常見的 plugin skill 名稱（debug、code-review�
 檔案數、跨模組、跨平台、陌生路徑與高風險關鍵字都不能單獨觸發完整流程。唯讀安全或架構分析維持 `single-agent` 或 `plan-light`
 
 所有 `orchestrate-heavy` 都使用一個 planner、writer 前明確取得使用者核准，以及一個獨立 verifier；只有核准後仍存在未解答程式路徑問題時才選用最多一個 explorer
+
+## 專案資安掃描
+
+`/project-security-scan [quick|standard|deep] [path]` 對整個專案（或指定目錄）做唯讀資安掃描，未指定等級時為 `standard`。只看分支上待合併的變更請改用內建的 `/security-review`
+
+| 等級 | 範圍 | 子代理 | 回報 |
+| --- | --- | --- | --- |
+| `quick` | 危險 sink、機密、設定檔與相依套件的 pattern 掃描 | 無 | High |
+| `standard` | quick 加上進入點盤點、存取控制檢查、輸入到 sink 的追蹤、OWASP Top 10 逐項走查 | 無（最多一個唯讀子代理） | High、Medium |
+| `deep` | 範圍內每個檔案完整閱讀、跨模組資料流、橫切面檢查，每個發現再由獨立子代理反證 | 平行 fan-out，token 用量高 | High、Medium、強化建議 |
+
+掃描會先從 manifest 判斷語言與框架，並依專案實際有的元件（資料庫層、HTML 輸出、API 端點、檔案處理等）決定要查的漏洞類別；類別以行為定義，不限於清單上的 API。接著套用 `references/stacks.md` 對應段落的 sink pattern 與框架檢查（JS/TS、Python、.NET、Java/Kotlin、Go、PHP、Ruby、Rust、基礎設施與 CI、行動裝置）；誤報過濾規則在 `references/triage.md`。每個發現會標上 OWASP Top 10:2025 類別，`standard` 與 `deep` 另外依 `references/owasp.md` 逐類回報已檢查、不適用或未檢查。相依套件稽核只使用已安裝的工具，不會自行安裝
+
+此 skill 不依賴本 kit 的其他元件，可單獨使用：把 `src/skills/project-security-scan/` 整個目錄複製到 `~/.claude/skills/` 或專案的 `.claude/skills/` 即可
 
 ## 安裝方式
 

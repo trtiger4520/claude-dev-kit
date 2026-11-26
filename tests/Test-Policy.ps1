@@ -25,6 +25,7 @@ foreach ($required in @(
     '`orchestrate-heavy`',
     'default to zero subagents and select at most one of explorer, implementer, or verifier',
     'Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`',
+    'explicitly selects the `deep` level of the project-security-scan skill',
     'Delegate only when at least two signals are present',
     'Route by actual change risk, not file count, step count, cross-module scope, cross-platform scope, or unfamiliar paths',
     'Every `orchestrate-heavy` workflow uses one planner, explicit user approval before any writer, and one independent verifier',
@@ -78,5 +79,19 @@ $riskySkill = Read-RepoFile 'src/skills/risky-change/SKILL.md'
 $repoDiscovery = Read-RepoFile 'src/skills/repo-discovery/SKILL.md'
 Assert-Contains -Content $riskySkill -Expected 'Keyword mentions and read-only analysis do not trigger this protocol' -File 'src/skills/risky-change/SKILL.md'
 Assert-NotContains -Content $repoDiscovery -Forbidden 'tasks/notes.md' -File 'src/skills/repo-discovery/SKILL.md'
+
+$securityScan = Read-RepoFile 'src/skills/project-security-scan/SKILL.md'
+foreach ($required in @('`quick`', '`standard`', '`deep`', 'Read-only. Never edit files', 'not `orchestrate-heavy`')) {
+    Assert-Contains -Content $securityScan -Expected $required -File 'src/skills/project-security-scan/SKILL.md'
+}
+foreach ($reference in [regex]::Matches($securityScan, 'references/[\w-]+\.md') | ForEach-Object Value | Sort-Object -Unique) {
+    Read-RepoFile "src/skills/project-security-scan/$reference" | Out-Null
+}
+$stacks = Read-RepoFile 'src/skills/project-security-scan/references/stacks.md'
+$detectedStacks = @([regex]::Matches($stacks, '(?m)^\| `[^|]+\| ([^|]+?) \|') | ForEach-Object { $_.Groups[1].Value })
+if ($detectedStacks.Count -eq 0) { throw 'references/stacks.md detection table has no stacks' }
+foreach ($stack in $detectedStacks) {
+    if ($stacks -notmatch "(?m)^## $([regex]::Escape($stack))\r?$") { throw "references/stacks.md detects '$stack' but has no matching section" }
+}
 
 Write-Output 'PASS: conservative delegation policy'

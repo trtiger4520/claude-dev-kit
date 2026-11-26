@@ -24,6 +24,7 @@ Traditional Chinese (Taiwan, zh-TW) as the primary language.
   - `plan-light`: non-high-risk work that benefits from a short plan — default to zero subagents and select at most one of explorer, implementer, or verifier
   - `orchestrate-heavy`: use only when the user explicitly requests the complete workflow, or the requested change modifies security-sensitive behavior or controls (including authentication and authorization rules), persisted data or schema, production state, core architecture, or a breaking public contract
 - Keep read-only security, migration, deployment, and architecture analysis in `single-agent` or `plan-light`; independent verification alone is verifier-only `plan-light`
+- Exception: when the user explicitly selects the `deep` level of the project-security-scan skill, dispatch the parallel read-only subagents that skill defines. It stays read-only analysis and never becomes `orchestrate-heavy`
 - A keyword match marks a potential high-risk domain but never decides the lane by itself. Invoke the risky-change skill and use `orchestrate-heavy` only when the requested write actually changes high-risk behavior
 - Default to no delegation and perform limited local exploration first. Delegate only when at least two signals are present:
   - the work can complete independently without frequent context exchange
