@@ -30,6 +30,7 @@ pwsh -NoProfile -File .\tests\Invoke-LaneScenariosLive.ps1 -All -ApprovedTotalBu
 | 大型陌生呼叫鏈或 CI Log | plan-light | explorer ×1 |
 | 顯式獨立驗證 | plan-light | verifier ×1 |
 | 唯讀安全或架構分析 | single-agent / plan-light | explorer ×0-1 |
+| 使用者明確指定 project-security-scan `deep` | 唯讀 fan-out（非 orchestrate-heavy） | 依分區數平行派唯讀子代理，無 planner、無 writer |
 | 單一低風險 cohesive feature | plan-light | implementer ×1 |
 | 實際 authentication policy 或正式資料 migration | orchestrate-heavy | planner ×1、implementer ×1、verifier ×1，explorer 選用 ×1 |
 | 明確完整流程的兩個獨立交付單元 | orchestrate-heavy | implementer 最多 ×2 |
